@@ -26,10 +26,10 @@ let db = {
     { id:1, productId:7, productCode:'PRD007', productName:'Mechanical Keyboard', center:'Tech Fix Chennai', contact:'9944112233', takenBy:'Vendor Rep', dateSent:'2024-06-01', expectedDate:'2024-06-15', status:'In Progress', notes:'Keys not registering.' },
   ],
   history: [
-    { id:1, productCode:'PRD002', productName:'HP LaserJet Pro', action:'Assigned', employee:'Ramesh Kumar', date:'2024-01-10', notes:'Assigned for office use' },
-    { id:2, productCode:'PRD004', productName:'Blue Star 1.5T AC', action:'Assigned', employee:'Priya Sharma', date:'2023-12-05', notes:'Conference room AC' },
-    { id:3, productCode:'PRD005', productName:'Lenovo ThinkPad', action:'Damaged', employee:'—', date:'2024-05-20', notes:'Screen cracked after a fall.' },
-    { id:4, productCode:'PRD007', productName:'Mechanical Keyboard', action:'Repair', employee:'—', date:'2024-06-01', notes:'Keys not registering.' },
+    { id:1, productCode:'PRD002', productName:'HP LaserJet Pro', action:'Assigned', employee:'Ramesh Kumar', date:'2024-01-10', returnDate:'2024-07-10', notes:'Assigned for office use' },
+    { id:2, productCode:'PRD004', productName:'Blue Star 1.5T AC', action:'Assigned', employee:'Priya Sharma', date:'2023-12-05', returnDate:'', notes:'Conference room AC' },
+    { id:3, productCode:'PRD005', productName:'Lenovo ThinkPad', action:'Damaged', employee:'—', date:'2024-05-20', returnDate:'', notes:'Screen cracked after a fall.' },
+    { id:4, productCode:'PRD007', productName:'Mechanical Keyboard', action:'Repair', employee:'—', date:'2024-06-01', returnDate:'', notes:'Keys not registering.' },
   ],
   nextId: { emp:4, cat:7, prod:8, assign:3, dmg:2, repair:2, history:5 }
 };
@@ -473,7 +473,7 @@ function saveAssignment() {
   };
   db.assignments.push(a);
   prod.status = 'Assigned';
-  db.history.push({ id: db.nextId.history++, productCode: prod.code, productName: prod.name, action: 'Assigned', employee: emp.name, date: a.assignedDate, notes: `Assigned to ${emp.name}` });
+  db.history.push({ id: db.nextId.history++, productCode: prod.code, productName: prod.name, action: 'Assigned', employee: emp.name, date: a.assignedDate, returnDate: a.returnDate, notes: `Assigned to ${emp.name}` });
   closeModal('assign-modal');
   showToast('Product assigned successfully.', 'success');
   renderAssigned(); updateBadges();
@@ -485,7 +485,7 @@ function returnProduct(id) {
   if (!confirm(`Mark "${a.productName}" as returned?`)) return;
   const prod = db.products.find(p => p.id === a.productId);
   if (prod) prod.status = 'Available';
-  db.history.push({ id: db.nextId.history++, productCode: a.productCode, productName: a.productName, action: 'Returned', employee: a.employeeName, date: today(), notes: 'Product returned' });
+  db.history.push({ id: db.nextId.history++, productCode: a.productCode, productName: a.productName, action: 'Returned', employee: a.employeeName, date: today(), returnDate: a.returnDate || today(), notes: 'Product returned' });
   db.assignments = db.assignments.filter(x => x.id !== id);
   showToast('Product returned to inventory.', 'success');
   renderAssigned(); updateBadges();
@@ -687,6 +687,7 @@ function renderHistory(query = '') {
       <td><span style="color:${actionColor[h.action]||'var(--text-secondary)'};font-weight:600;font-size:12px;">${h.action}</span></td>
       <td>${h.employee}</td>
       <td>${formatDate(h.date)}</td>
+      <td>${h.returnDate ? formatDate(h.returnDate) : '<span style="color:var(--text-secondary);font-size:11px">—</span>'}</td>
       <td style="color:var(--text-secondary)">${h.notes}</td>
     </tr>`
   ).join('');
