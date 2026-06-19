@@ -33,21 +33,22 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
           Categories
         </div>
+        <div class="nav-submenu">
+          <div class="nav-item sub-item" data-page="products">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            Products
+          </div>
+          <div class="nav-item sub-item" data-page="available">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Available Products
+          </div>
+        </div>
       </div>
       <div class="nav-section">
         <div class="nav-label">Products</div>
-        <div class="nav-item" data-page="products">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          Products
-          <span class="nav-badge" id="nav-prod-count">0</span>
-        </div>
         <div class="nav-item" data-page="assigned">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
           Assigned Products
-        </div>
-        <div class="nav-item" data-page="available">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-          Available Products
         </div>
       </div>
       <div class="nav-section">
@@ -79,11 +80,14 @@
       <div class="topbar-search">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         <input type="text" id="global-search" placeholder="Search anything…" oninput="handleGlobalSearch(this.value)">
+        <button type="button" class="search-clear" onclick="clearSearch('global-search')" aria-label="Clear search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
       <div class="topbar-actions">
         <button class="btn btn-secondary" onclick="exportJSON()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Export JSON
+          Export PDF
         </button>
       </div>
     </div>
@@ -92,6 +96,10 @@
 
       <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
+        <div class="dashboard-actions" style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="navigate('products')">Products</button>
+          <button class="btn btn-secondary" onclick="navigate('available')">Available Products</button>
+        </div>
         <div class="stats-grid">
           <div class="stat-card color-blue">
             <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
@@ -130,16 +138,6 @@
             <div class="sub">Staff members</div>
           </div>
         </div>
-        <div class="dashboard-grid">
-          <div class="card">
-            <div class="card-header"><h3>Category Summary</h3></div>
-            <div class="card-body" id="category-summary"></div>
-          </div>
-          <div class="card">
-            <div class="card-header"><h3>Recent Activity</h3></div>
-            <div class="card-body" id="recent-activity"></div>
-          </div>
-        </div>
       </div>
 
       <!-- EMPLOYEES -->
@@ -147,9 +145,12 @@
         <div class="module-toolbar">
           <div class="search-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            <input type="text" placeholder="Search employees…" oninput="filterTable('emp-table', this.value, [0,1,2,3])">
+            <input id="emp-search" type="text" placeholder="Search employees…" oninput="searchEmployees(this.value)">
+            <button type="button" class="search-clear" onclick="clearSearch('emp-search')" aria-label="Clear search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
-          <select class="filter-select" onchange="filterByStatus('emp-table', this.value, 5)">
+          <select class="filter-select" onchange="filterEmployeesStatus(this.value)">
             <option value="">All Status</option>
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
@@ -163,11 +164,15 @@
           <div class="table-wrap">
             <table>
               <thead><tr>
-                <th>Code</th><th>Name</th><th>Department</th><th>Role</th><th>Email</th>
+                <th>Employee Name</th><th>Department</th><th>Role</th><th>Code</th><th>Email</th>
                 <th>Status</th><th>Blood Grp</th><th>Actions</th>
               </tr></thead>
               <tbody id="emp-table"></tbody>
             </table>
+          </div>
+          <div class="table-footer">
+            <div class="table-info" id="emp-table-info">Showing 0 to 0 of 0 entries</div>
+            <div class="pagination" id="emp-pagination"></div>
           </div>
         </div>
       </div>
@@ -187,6 +192,10 @@
               <tbody id="cat-table"></tbody>
             </table>
           </div>
+          <div class="table-footer">
+            <div class="table-info" id="cat-table-info">Showing 0 to 0 of 0 entries</div>
+            <div class="pagination" id="cat-pagination"></div>
+          </div>
         </div>
       </div>
 
@@ -195,19 +204,23 @@
         <div class="module-toolbar">
           <div class="search-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            <input type="text" placeholder="Search products…" oninput="filterTable('prod-table', this.value, [0,1,2,3])">
+            <input id="prod-search" type="text" placeholder="Search products…" oninput="searchProducts(this.value)">
+            <button type="button" class="search-clear" onclick="clearSearch('prod-search')" aria-label="Clear search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
-          <select class="filter-select" onchange="filterByStatus('prod-table', this.value, 5)">
+          <select class="filter-select" onchange="filterProductsStatus(this.value)">
             <option value="">All Status</option>
             <option value="Available">Available</option>
             <option value="Assigned">Assigned</option>
             <option value="Damaged">Damaged</option>
             <option value="Repair">Under Repair</option>
+            <option value="Replaced">Replaced</option>
           </select>
-          <select class="filter-select" onchange="filterByStatus('prod-table', this.value, 2)" id="cat-filter">
+          <select class="filter-select" onchange="filterProductsCategory(this.value)" id="cat-filter">
             <option value="">All Categories</option>
           </select>
-          <button class="btn btn-primary" onclick="openModal('prod-modal')">
+          <button class="btn btn-primary" onclick="openProductModal()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add Product
           </button>
@@ -216,11 +229,15 @@
           <div class="table-wrap">
             <table>
               <thead><tr>
-                <th>Code</th><th>Name</th><th>Category</th><th>Brand</th><th>Serial No.</th>
+                <th>Category</th><th>Name</th><th>Code</th><th>Brand</th><th>Serial No.</th>
                 <th>Status</th><th>Qty</th><th>Purchase Date</th><th>Actions</th>
               </tr></thead>
               <tbody id="prod-table"></tbody>
             </table>
+          </div>
+          <div class="table-footer">
+            <div class="table-info" id="prod-table-info">Showing 0 to 0 of 0 entries</div>
+            <div class="pagination" id="prod-pagination"></div>
           </div>
         </div>
       </div>
@@ -230,7 +247,10 @@
         <div class="module-toolbar">
           <div class="search-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            <input type="text" placeholder="Search assignments…" oninput="filterTable('assign-table', this.value, [0,1,2])">
+            <input id="assign-search" type="text" placeholder="Search assignments…" oninput="filterTable('assign-table', this.value, [0,1,2])">
+            <button type="button" class="search-clear" onclick="clearSearch('assign-search')" aria-label="Clear search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
           <button class="btn btn-primary" onclick="openModal('assign-modal')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -247,12 +267,20 @@
               <tbody id="assign-table"></tbody>
             </table>
           </div>
+          <div class="table-footer">
+            <div class="table-info" id="assign-table-info">Showing 0 to 0 of 0 entries</div>
+            <div class="pagination" id="assign-pagination"></div>
+          </div>
         </div>
       </div>
 
       <!-- AVAILABLE PRODUCTS -->
       <div class="page" id="page-available">
         <div class="products-grid" id="available-grid"></div>
+        <div class="table-footer">
+          <div class="table-info" id="available-table-info">Showing 0 to 0 of 0 entries</div>
+          <div class="pagination" id="available-pagination"></div>
+        </div>
       </div>
 
       <!-- DAMAGED -->
@@ -264,6 +292,10 @@
           </button>
         </div>
         <div id="damage-list"></div>
+        <div class="table-footer">
+          <div class="table-info" id="damaged-table-info">Showing 0 to 0 of 0 entries</div>
+          <div class="pagination" id="damaged-pagination"></div>
+        </div>
       </div>
 
       <!-- REPAIR TRACKING -->
@@ -275,6 +307,10 @@
           </button>
         </div>
         <div id="repair-list"></div>
+        <div class="table-footer">
+          <div class="table-info" id="repair-table-info">Showing 0 to 0 of 0 entries</div>
+          <div class="pagination" id="repair-pagination"></div>
+        </div>
       </div>
 
       <!-- HISTORY -->
@@ -282,7 +318,10 @@
         <div class="module-toolbar">
           <div class="search-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            <input type="text" placeholder="Search by product code…" oninput="searchHistory(this.value)">
+            <input id="hist-search" type="text" placeholder="Search by product code…" oninput="searchHistory(this.value)">
+            <button type="button" class="search-clear" onclick="clearSearch('hist-search')" aria-label="Clear search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
         </div>
         <div class="card">
@@ -294,6 +333,10 @@
               </tr></thead>
               <tbody id="history-table"></tbody>
             </table>
+          </div>
+          <div class="table-footer">
+            <div class="table-info" id="hist-table-info">Showing 0 to 0 of 0 entries</div>
+            <div class="pagination" id="hist-pagination"></div>
           </div>
         </div>
       </div>
@@ -379,21 +422,23 @@
       </div>
       <div class="modal-body">
         <div class="form-grid">
-          <div class="form-group"><label>Product Code *</label><input type="text" id="pf-code" placeholder="PRD001"></div>
-          <div class="form-group"><label>Product Name *</label><input type="text" id="pf-name" placeholder="Dell Laptop"></div>
+          <div class="form-group"><label>Product Code *</label><input type="text" id="pf-code" placeholder="Enter product code"></div>
+          <div class="form-group"><label>Product Name *</label><input type="text" id="pf-name" placeholder="Enter product name"></div>
           <div class="form-group"><label>Category</label>
-            <select id="pf-cat"></select>
+            <select id="pf-cat"><option value="">Select category</option></select>
           </div>
-          <div class="form-group"><label>Brand</label><input type="text" id="pf-brand" placeholder="Dell"></div>
-          <div class="form-group"><label>Serial Number</label><input type="text" id="pf-serial" placeholder="SN123456"></div>
-          <div class="form-group"><label>Purchase Date</label><input type="date" id="pf-date"></div>
-          <div class="form-group"><label>Quantity</label><input type="number" id="pf-qty" placeholder="1" min="1"></div>
+          <div class="form-group"><label>Brand</label><input type="text" id="pf-brand" placeholder="Enter brand"></div>
+          <div class="form-group"><label>Serial Number</label><input type="text" id="pf-serial" placeholder="Enter serial number"></div>
+          <div class="form-group"><label>Purchase Date</label><input type="date" id="pf-date" placeholder="Select purchase date"></div>
+          <div class="form-group"><label>Quantity</label><input type="number" id="pf-qty" placeholder="Enter quantity" min="1"></div>
           <div class="form-group"><label>Status</label>
             <select id="pf-status">
+              <option value="">Select status</option>
               <option value="Available">Available</option>
               <option value="Assigned">Assigned</option>
               <option value="Damaged">Damaged</option>
               <option value="Repair">Under Repair</option>
+              <option value="Replaced">Replaced</option>
             </select>
           </div>
         </div>
@@ -446,6 +491,7 @@
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group full"><label>Product *</label><select id="df-prod"></select></div>
+          <div class="form-group"><label>Action</label><select id="df-action"><option>Damaged</option><option>Replaced</option></select></div>
           <div class="form-group"><label>Date Reported</label><input type="date" id="df-date"></div>
           <div class="form-group"><label>Reported By</label><input type="text" id="df-by" placeholder="Name"></div>
           <div class="form-group full"><label>Damage Notes</label><textarea id="df-notes" placeholder="Describe the damage…"></textarea></div>
