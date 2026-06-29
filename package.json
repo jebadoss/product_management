@@ -1,0 +1,21 @@
+{
+  "name": "product-management-system",
+  "version": "1.0.0",
+  "description": "Product Management System with Node.js Express & PostgreSQL",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "setup": "node setup.js",
+    "clear": "node clear_db.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.11.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
