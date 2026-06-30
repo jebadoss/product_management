@@ -1061,6 +1061,7 @@ function viewProduct(id) {
                   <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border);">Action</th>
                   <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border);">Employee</th>
                   <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border);">Date</th>
+                  <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border);">Return Date</th>
                   <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border);">Notes</th>
                 </tr>
               </thead>
@@ -1070,6 +1071,7 @@ function viewProduct(id) {
                     <td style="padding:10px 12px; font-size:13px; font-weight:600; color:${actionColor[h.action] || 'var(--text-secondary)'}; border-bottom: 1px solid var(--border);">${h.action}</td>
                     <td style="padding:10px 12px; font-size:13px; border-bottom: 1px solid var(--border);">${h.employee}</td>
                     <td style="padding:10px 12px; font-size:13px; color:var(--text-secondary); border-bottom: 1px solid var(--border);">${formatDate(h.date)}</td>
+                    <td style="padding:10px 12px; font-size:13px; color:var(--text-secondary); border-bottom: 1px solid var(--border);">${(h.action === 'Repaired' || h.action === 'Returned') && h.returnDate ? formatDateTime(h.returnDate) : (h.returnDate ? formatDate(h.returnDate) : '<span style="color:var(--text-secondary);font-size:11px">—</span>')}</td>
                     <td style="padding:10px 12px; font-size:13px; color:var(--text-secondary); border-bottom: 1px solid var(--border); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${h.notes || ''}">${h.notes || '—'}</td>
                   </tr>
                 `).join('')}
@@ -2009,7 +2011,7 @@ function renderRepair(page = tableState.repair) {
         <div class="repair-meta-item"><div class="rm-label">Contact</div><div class="rm-value">${r.contact}</div></div>
         <div class="repair-meta-item"><div class="rm-label">Taken By</div><div class="rm-value">${r.takenBy}</div></div>
         <div class="repair-meta-item"><div class="rm-label">Date Sent</div><div class="rm-value">${formatDate(r.dateSent)}</div></div>
-        <div class="repair-meta-item"><div class="rm-label">Expected Return</div><div class="rm-value">${formatDate(r.expectedDate)}</div></div>
+        ${r.status === 'Completed' ? `<div class="repair-meta-item"><div class="rm-label">Return Date</div><div class="rm-value">${formatDateTime(r.completedDate)}</div></div>` : ''}
         <div class="repair-meta-item"><div class="rm-label">Notes</div><div class="rm-value">${r.notes}</div></div>
       </div>
     </div>`
@@ -2053,7 +2055,6 @@ function saveRepair() {
     contact,
     takenBy,
     dateSent: document.getElementById('rf-sent').value || today(),
-    expectedDate: document.getElementById('rf-expected').value,
     status,
     notes: document.getElementById('rf-notes').value.trim()
   };
@@ -2108,7 +2109,6 @@ function openRepairModal() {
   document.getElementById('rf-center').value = '';
   document.getElementById('rf-contact').value = '';
   document.getElementById('rf-taken').value = '';
-  document.getElementById('rf-expected').value = '';
   document.getElementById('rf-status').value = '';
   document.getElementById('rf-notes').value = '';
   document.getElementById('rf-sent').value = today();
@@ -2211,7 +2211,7 @@ function renderHistory(query = tableState.historyQuery, page = tableState.histor
       <td><span style="color:${actionColor[h.action] || 'var(--text-secondary)'};font-weight:600;font-size:12px;">${h.action}</span></td>
       <td>${h.employee}</td>
       <td>${formatDate(h.date)}</td>
-      <td>${h.returnDate ? formatDate(h.returnDate) : '<span style="color:var(--text-secondary);font-size:11px">—</span>'}</td>
+      <td>${(h.action === 'Repaired' || h.action === 'Returned') && h.returnDate ? formatDateTime(h.returnDate) : (h.returnDate ? formatDate(h.returnDate) : '<span style="color:var(--text-secondary);font-size:11px">—</span>')}</td>
       <td style="color:var(--text-secondary)">${h.notes}</td>
     </tr>`
   ).join('');
@@ -2306,6 +2306,20 @@ function formatDate(d) {
   if (!d) return '—';
   const dt = new Date(d);
   return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatDateTime(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return '—';
+  return dt.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
 }
 
 function today() {

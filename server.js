@@ -126,6 +126,7 @@ app.get('/api/db', async (req, res) => {
       dateSent: r.date_sent ? r.date_sent.toISOString().split('T')[0] : '',
       expectedDate: r.expected_date ? r.expected_date.toISOString().split('T')[0] : '',
       status: r.status || 'Pending',
+      completedDate: r.completed_date ? r.completed_date.toISOString() : null,
       notes: r.notes || '',
       updatedAt: parseInt(r.updated_at)
     }));
@@ -136,8 +137,8 @@ app.get('/api/db', async (req, res) => {
       productName: h.product_name,
       action: h.action,
       employee: h.employee || '—',
-      date: h.date ? h.date.toISOString().split('T')[0] : '',
-      returnDate: h.return_date ? h.return_date.toISOString().split('T')[0] : null,
+      date: h.date ? h.date.toISOString() : '',
+      returnDate: h.return_date ? h.return_date.toISOString() : null,
       notes: h.notes || '',
       updatedAt: parseInt(h.updated_at)
     }));
@@ -485,9 +486,9 @@ app.put('/api/assignments/:id/return', async (req, res) => {
       const prod = prodRes.rows[0];
       
       await client.query(
-        `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [prod.code, prod.name, 'Returned', employeeName, new Date(), 'Product returned from bundle', Date.now()]
+        `INSERT INTO history (product_code, product_name, action, employee, date, return_date, notes, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [prod.code, prod.name, 'Returned', employeeName, new Date(), new Date(), 'Product returned from bundle', Date.now()]
       );
     }
     
@@ -595,19 +596,29 @@ app.post('/api/repairs', async (req, res) => {
     const prodRes = await client.query('SELECT code, name FROM products WHERE id = $1', [productId]);
     const prod = prodRes.rows[0];
     
+    const completedDate = status === 'Completed' ? new Date() : null;
     await client.query(
-      `INSERT INTO repairs (product_id, product_code, product_name, center, contact, taken_by, date_sent, expected_date, status, notes, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [productId, prod.code, prod.name, center, contact, takenBy, dateSent, expectedDate || null, status, notes, Date.now()]
+      `INSERT INTO repairs (product_id, product_code, product_name, center, contact, taken_by, date_sent, expected_date, status, completed_date, notes, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [productId, prod.code, prod.name, center, contact, takenBy, dateSent, expectedDate || null, status, completedDate, notes, Date.now()]
     );
     
-    await client.query("UPDATE products SET status = 'Repair', updated_at = $2 WHERE id = $1", [productId, Date.now()]);
+    const prodStatus = status === 'Completed' ? 'Available' : 'Repair';
+    await client.query("UPDATE products SET status = $1, updated_at = $2 WHERE id = $3", [prodStatus, Date.now(), productId]);
     
-    await client.query(
-      `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [prod.code, prod.name, 'Repair', '—', new Date(dateSent), `Sent to ${center}`, Date.now()]
-    );
+    if (status === 'Completed') {
+      await client.query(
+        `INSERT INTO history (product_code, product_name, action, employee, date, return_date, notes, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [prod.code, prod.name, 'Repaired', '—', new Date(), new Date(), 'Repair completed, returned to inventory', Date.now()]
+      );
+    } else {
+      await client.query(
+        `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [prod.code, prod.name, 'Repair', '—', new Date(dateSent), `Sent to ${center}`, Date.now()]
+      );
+    }
     
     await client.query('COMMIT');
     res.json({ success: true });
@@ -629,13 +640,13 @@ app.put('/api/repairs/:id/complete', async (req, res) => {
     const repairRes = await client.query('SELECT product_id, product_code, product_name FROM repairs WHERE id = $1', [id]);
     const r = repairRes.rows[0];
     
-    await client.query("UPDATE repairs SET status = 'Completed', updated_at = $2 WHERE id = $1", [id, Date.now()]);
+    await client.query("UPDATE repairs SET status = 'Completed', completed_date = $2, updated_at = $3 WHERE id = $1", [id, new Date(), Date.now()]);
     await client.query("UPDATE products SET status = 'Available', updated_at = $2 WHERE id = $1", [r.product_id, Date.now()]);
     
     await client.query(
-      `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [r.product_code, r.product_name, 'Repaired', '—', new Date(), 'Repair completed, returned to inventory', Date.now()]
+      `INSERT INTO history (product_code, product_name, action, employee, date, return_date, notes, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [r.product_code, r.product_name, 'Repaired', '—', new Date(), new Date(), 'Repair completed, returned to inventory', Date.now()]
     );
     
     await client.query('COMMIT');
@@ -668,5 +679,23 @@ app.listen(PORT, async () => {
     console.log('Successfully dropped/verified unique constraint on product code.');
   } catch (err) {
     console.error('Error dropping unique constraint on product code:', err.message);
+  }
+  try {
+    await pool.query('ALTER TABLE repairs ADD COLUMN IF NOT EXISTS completed_date TIMESTAMP');
+    console.log('Successfully verified/added completed_date column to repairs.');
+  } catch (err) {
+    console.error('Error verifying/adding completed_date column to repairs:', err.message);
+  }
+  try {
+    await pool.query('ALTER TABLE history ALTER COLUMN date TYPE TIMESTAMP');
+    console.log('Successfully verified/altered history.date to TIMESTAMP.');
+  } catch (err) {
+    console.error('Error altering history.date to TIMESTAMP:', err.message);
+  }
+  try {
+    await pool.query('ALTER TABLE history ALTER COLUMN return_date TYPE TIMESTAMP');
+    console.log('Successfully verified/altered history.return_date to TIMESTAMP.');
+  } catch (err) {
+    console.error('Error altering history.return_date to TIMESTAMP:', err.message);
   }
 });

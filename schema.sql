@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS repairs (
     date_sent DATE NOT NULL,
     expected_date DATE,
     status VARCHAR(50) DEFAULT 'Pending',
+    completed_date TIMESTAMP,
     notes TEXT,
     updated_at BIGINT NOT NULL
 );
@@ -95,8 +96,8 @@ CREATE TABLE IF NOT EXISTS history (
     product_name VARCHAR(150) NOT NULL,
     action VARCHAR(50) NOT NULL,
     employee VARCHAR(100) DEFAULT '—',
-    date DATE,
-    return_date DATE,
+    date TIMESTAMP,
+    return_date TIMESTAMP,
     notes TEXT,
     updated_at BIGINT NOT NULL
 );
