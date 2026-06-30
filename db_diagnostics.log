@@ -1,0 +1,172 @@
+=== DATABASE DIAGNOSTICS ===
+Timestamp: 2026-06-30T04:36:54.175Z
+
+Testing connection to database...
+Success! Database Time: Tue Jun 30 2026 10:06:54 GMT+0530 (India Standard Time)
+
+Querying categories table...
+Categories count: 2
+[
+  {
+    "id": 3,
+    "name": "computer",
+    "items": [],
+    "updated_at": "1782716965561"
+  },
+  {
+    "id": 4,
+    "name": "accessories",
+    "items": [],
+    "updated_at": "1782727607965"
+  }
+]
+
+Querying products table...
+Products count: 8
+[
+  {
+    "id": 16,
+    "code": "001",
+    "name": "keyboard",
+    "cat": "computer",
+    "sub_cat": "",
+    "brand": "",
+    "serial": "",
+    "purchase_date": "2026-06-27T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1782793437820"
+  },
+  {
+    "id": 19,
+    "code": "002",
+    "name": "zebronics",
+    "cat": "computer",
+    "sub_cat": "",
+    "brand": "",
+    "serial": "",
+    "purchase_date": "2026-06-27T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1782729111698"
+  },
+  {
+    "id": 17,
+    "code": "001",
+    "name": "cpu",
+    "cat": "computer",
+    "sub_cat": "",
+    "brand": "",
+    "serial": "",
+    "purchase_date": "2026-06-27T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1782729119914"
+  },
+  {
+    "id": 21,
+    "code": "001",
+    "name": "MIC",
+    "cat": "accessories",
+    "sub_cat": "",
+    "brand": "",
+    "serial": "",
+    "purchase_date": "2026-06-28T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1782729119915"
+  },
+  {
+    "id": 20,
+    "code": "002",
+    "name": "keyboard",
+    "cat": "computer",
+    "sub_cat": "",
+    "brand": "",
+    "serial": "",
+    "purchase_date": "2026-06-27T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1782729450669"
+  },
+  {
+    "id": 18,
+    "code": "002",
+    "name": "cpu",
+    "cat": "computer",
+    "sub_cat": "",
+    "brand": "",
+    "serial": "",
+    "purchase_date": "2026-06-27T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1782729634958"
+  },
+  {
+    "id": 15,
+    "code": "001",
+    "name": "zebronics",
+    "cat": "computer",
+    "sub_cat": "",
+    "brand": "",
+    "serial": "",
+    "purchase_date": "2026-06-27T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1782730988359"
+  },
+  {
+    "id": 14,
+    "code": "001",
+    "name": "mouse",
+    "cat": "computer",
+    "sub_cat": "",
+    "brand": "",
+    "serial": "",
+    "purchase_date": "2026-06-27T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1782731090737"
+  }
+]
+
+Querying assignments table...
+Assignments count: 1
+[
+  {
+    "id": 7,
+    "employee_id": 4,
+    "employee_name": "jeba doss G",
+    "dept": "IT",
+    "assigned_date": "2026-06-26T18:30:00.000Z",
+    "return_date": "29 Jun 2026, 04:01 pm",
+    "units": 5,
+    "updated_at": "1782729119916"
+  }
+]
+
+Querying assignment_products table...
+Junction rows count: 5
+[
+  {
+    "assignment_id": 7,
+    "product_id": 15
+  },
+  {
+    "assignment_id": 7,
+    "product_id": 14
+  },
+  {
+    "assignment_id": 7,
+    "product_id": 16
+  },
+  {
+    "assignment_id": 7,
+    "product_id": 17
+  },
+  {
+    "assignment_id": 7,
+    "product_id": 21
+  }
+]
+

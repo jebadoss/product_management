@@ -1,3 +1,15 @@
+// Override fetch to route API requests to the backend server when frontend is hosted separately
+const originalFetch = window.fetch;
+window.fetch = function (url, options) {
+  if (typeof url === 'string' && url.startsWith('/api/')) {
+    const API_BASE = window.location.origin.includes('localhost:3000') || window.location.origin.includes('127.0.0.1:3000')
+      ? ''
+      : 'http://localhost:3000';
+    url = API_BASE + url;
+  }
+  return originalFetch(url, options);
+};
+
 // ===================== DATA STORE =====================
 let db = {
   employees: [],
@@ -9,177 +21,11 @@ let db = {
   history: [],
 };
 
-const savedDb = localStorage.getItem('pms_db');
-if (savedDb) {
-  try {
-    db = JSON.parse(savedDb);
-  } catch (e) {
-    console.error('Error loading saved database', e);
-  }
-}
-
-// Force seed dummy data ONCE using a persistent flag in localStorage for testing
-if (!localStorage.getItem('pms_data_seeded_v3')) {
-  db = {
-    categories: [
-      { name: "Computer", items: ["Mouse", "CPU", "Keyboard", "Monitor"], updatedAt: Date.now() - 5000 },
-      { name: "Accessories", items: ["Webcam", "Headset", "USB Hub", "Speaker"], updatedAt: Date.now() - 4000 },
-      { name: "Furniture", items: ["Chair", "Desk"], updatedAt: Date.now() - 3000 }
-    ],
-    employees: [
-      {
-        id: 1,
-        code: "EMP001",
-        name: "Jeba Doss",
-        dept: "Engineering",
-        role: "Developer",
-        email: "jeba.doss@example.com",
-        phone: "9876543210",
-        blood: "O+",
-        status: "Active",
-        joinDate: "2025-01-15",
-        resignDate: "",
-        address: "Chennai, Tamil Nadu",
-        updatedAt: Date.now() - 5000
-      },
-      {
-        id: 2,
-        code: "EMP002",
-        name: "Ravi Kumar",
-        dept: "Design",
-        role: "UI Designer",
-        email: "ravi.kumar@example.com",
-        phone: "9876543211",
-        blood: "A+",
-        status: "Active",
-        joinDate: "2025-03-10",
-        resignDate: "",
-        address: "Coimbatore, Tamil Nadu",
-        updatedAt: Date.now() - 4000
-      }
-    ],
-    products: [
-      {
-        id: 1,
-        code: "PRD001",
-        name: "Logitech G502 Mouse",
-        cat: "Computer",
-        subCat: "Mouse",
-        brand: "Logitech",
-        serial: "S/N 12345",
-        purchaseDate: "2025-02-01",
-        qty: 1,
-        status: "Available",
-        updatedAt: Date.now() - 5000
-      },
-      {
-        id: 2,
-        code: "PRD002",
-        name: "Intel Core i9 CPU Tower",
-        cat: "Computer",
-        subCat: "CPU",
-        brand: "Intel",
-        serial: "S/N 54321",
-        purchaseDate: "2025-02-01",
-        qty: 1,
-        status: "Available",
-        updatedAt: Date.now() - 4500
-      },
-      {
-        id: 3,
-        code: "PRD003",
-        name: "Keychron K2 Keyboard",
-        cat: "Computer",
-        subCat: "Keyboard",
-        brand: "Keychron",
-        serial: "S/N 98765",
-        purchaseDate: "2025-02-01",
-        qty: 1,
-        status: "Available",
-        updatedAt: Date.now() - 4000
-      },
-      {
-        id: 4,
-        code: "PRD004",
-        name: "Dell UltraSharp 27 Monitor",
-        cat: "Computer",
-        subCat: "Monitor",
-        brand: "Dell",
-        serial: "S/N 56789",
-        purchaseDate: "2025-02-01",
-        qty: 1,
-        status: "Available",
-        updatedAt: Date.now() - 3500
-      },
-      {
-        id: 5,
-        code: "PRD005",
-        name: "Logitech C922 Webcam",
-        cat: "Accessories",
-        subCat: "Webcam",
-        brand: "Logitech",
-        serial: "S/N 87654",
-        purchaseDate: "2025-03-01",
-        qty: 1,
-        status: "Available",
-        updatedAt: Date.now() - 3000
-      }
-    ],
-    assignments: [],
-    damages: [],
-    repairs: [],
-    history: [
-      { id: 1, productCode: "PRD001", productName: "Logitech G502 Mouse", action: "Added", employee: "—", date: "2025-02-01", notes: "Product added to inventory", updatedAt: Date.now() - 5000 },
-      { id: 2, productCode: "PRD002", productName: "Intel Core i9 CPU Tower", action: "Added", employee: "—", date: "2025-02-01", notes: "Product added to inventory", updatedAt: Date.now() - 4500 },
-      { id: 3, productCode: "PRD003", productName: "Keychron K2 Keyboard", action: "Added", employee: "—", date: "2025-02-01", notes: "Product added to inventory", updatedAt: Date.now() - 4000 },
-      { id: 4, productCode: "PRD004", productName: "Dell UltraSharp 27 Monitor", action: "Added", employee: "—", date: "2025-02-01", notes: "Product added to inventory", updatedAt: Date.now() - 3500 },
-      { id: 5, productCode: "PRD005", productName: "Logitech C922 Webcam", action: "Added", employee: "—", date: "2025-03-01", notes: "Product added to inventory", updatedAt: Date.now() - 3000 }
-    ],
-    nextId: {
-      emp: 3,
-      prod: 6,
-      assign: 1,
-      dmg: 1,
-      repair: 1,
-      history: 6
-    }
-  };
-  localStorage.setItem('pms_db', JSON.stringify(db));
-  localStorage.setItem('pms_data_seeded_v3', 'true');
-}
-
-// Sanitize database structure to ensure all arrays are defined
-db.employees = db.employees || [];
-db.categories = db.categories || [];
-db.products = db.products || [];
-db.assignments = db.assignments || [];
-db.damages = db.damages || [];
-db.repairs = db.repairs || [];
-db.history = db.history || [];
-
-// Initialize nextId if not present or corrupt (e.g. contains NaN)
-if (!db.nextId || 
-    isNaN(db.nextId.emp) || 
-    isNaN(db.nextId.prod) || 
-    isNaN(db.nextId.assign) || 
-    isNaN(db.nextId.dmg) || 
-    isNaN(db.nextId.repair) || 
-    isNaN(db.nextId.history)) {
-  db.nextId = {
-    emp: db.employees.length ? Math.max(...db.employees.map(e => parseInt(e.id) || 0), 0) + 1 : 1,
-    prod: db.products.length ? Math.max(...db.products.map(p => parseInt(p.id) || 0), 0) + 1 : 1,
-    assign: db.assignments.length ? Math.max(...db.assignments.map(a => parseInt(a.id) || 0), 0) + 1 : 1,
-    dmg: db.damages.length ? Math.max(...db.damages.map(d => parseInt(d.id) || 0), 0) + 1 : 1,
-    repair: db.repairs.length ? Math.max(...db.repairs.map(r => parseInt(r.id) || 0), 0) + 1 : 1,
-    history: db.history.length ? Math.max(...db.history.map(h => parseInt(h.id) || 0), 0) + 1 : 1
-  };
-}
-
 function saveDb() {
-  localStorage.setItem('pms_db', JSON.stringify(db));
+  // DB saving is now handled on PostgreSQL server
 }
 
-let editingId = { emp: null, cat: null, prod: null };
+let editingId = { emp: null, cat: null, prod: null, assign: null };
 let isRenamingCategory = false;
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#6366F1', '#EC4899', '#14B8A6'];
 const PAGE_SIZE = 10;
@@ -197,8 +43,6 @@ let tableState = {
   productCategory: '',
   assigned: 1,
   assignedQuery: '',
-  available: 1,
-  availableQuery: '',
   damaged: 1,
   damagedQuery: '',
   damagedStatus: '',
@@ -348,7 +192,6 @@ function changePage(key, page) {
   else if (key === 'categories' || key === 'cat') renderCategories(page);
   else if (key === 'products' || key === 'prod') renderProducts(page);
   else if (key === 'assign') renderAssigned(page);
-  else if (key === 'available') renderAvailable(page);
   else if (key === 'damaged') renderDamaged(page);
   else if (key === 'repair') renderRepair(page);
   else if (key === 'hist') renderHistory(tableState.historyQuery, page);
@@ -375,7 +218,7 @@ function navigate(page) {
   }
 
   if (submenu) {
-    if (page === 'products' || page === 'available') {
+    if (page === 'products') {
       submenu.classList.add('open');
     } else {
       submenu.classList.remove('open');
@@ -393,11 +236,11 @@ function navigate(page) {
     dashboard: 'Dashboard', 
     employees: 'Employees', 
     'emp-detail': 'Employee Details',
+    'prod-detail': 'Product Details',
     categories: 'Categories', 
     products: 'Products', 
     items: 'Items', 
     assigned: 'Assigned Products', 
-    available: 'Available Products', 
     damaged: 'Damage Reports', 
     repair: 'Repair Tracking', 
     history: 'Product History' 
@@ -419,7 +262,6 @@ function navigate(page) {
   tableState.productQuery = '';
   tableState.categoryQuery = '';
   tableState.assignedQuery = '';
-  tableState.availableQuery = '';
   tableState.damagedQuery = '';
   tableState.damagedStatus = '';
   tableState.repairQuery = '';
@@ -471,7 +313,6 @@ function renderPage(page) {
   if (page === 'products') renderProducts();
   if (page === 'items') renderItems();
   if (page === 'assigned') renderAssigned();
-  if (page === 'available') renderAvailable();
   if (page === 'damaged') renderDamaged();
   if (page === 'repair') renderRepair();
   if (page === 'history') renderHistory();
@@ -563,7 +404,14 @@ function renderEmployees(page = tableState.employees) {
 function viewEmployee(id) {
   const e = db.employees.find(x => x.id === id);
   if (!e) return;
-  const prods = db.assignments.filter(a => a.employeeId === id);
+  
+  // Filter active assignments (current products)
+  const currentProds = db.assignments.filter(a => a.employeeId === id && !a.returnDate);
+  
+  // Filter all history events associated with this employee's name
+  const empHistory = db.history
+    .filter(h => h.employee === e.name)
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   
   document.getElementById('emp-detail-page-content').innerHTML = `
     <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; align-items: start;">
@@ -593,20 +441,58 @@ function viewEmployee(id) {
         </div>
       </div>
 
-      <!-- Right side: Current Products -->
-      <div class="card" style="padding: 24px;">
-        <h4 style="margin-bottom:16px; font-size:15px; color:var(--text); font-weight:600; border-bottom:1px solid var(--border); padding-bottom:12px;">Current Products (${prods.length})</h4>
-        ${prods.length ? prods.map(a => `
-          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:12px; font-size:13px; display:flex; flex-direction:column; gap:6px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-weight:700; color:var(--text); font-size:14px;">${a.productName}</span>
-              <code style="background:var(--border); padding:2px 6px; border-radius:4px; font-size:11px;">${a.productCode}</code>
+      <!-- Right side: Current Products and Product History -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        <!-- Current Products -->
+        <div class="card" style="padding: 24px;">
+          <h4 style="margin-bottom:16px; font-size:15px; color:var(--text); font-weight:600; border-bottom:1px solid var(--border); padding-bottom:12px;">Current Products (${currentProds.length})</h4>
+          ${currentProds.length ? currentProds.map(a => `
+            <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:12px; font-size:13px; display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:var(--text); font-size:14px;">${a.productName}</span>
+                <code style="background:var(--border); padding:2px 6px; border-radius:4px; font-size:11px;">${a.productCode}</code>
+              </div>
+              <div style="color:var(--text-secondary); font-size:12px; margin-top:2px;">
+                Assigned since: <strong>${formatDate(a.assignedDate)}</strong>
+              </div>
             </div>
-            <div style="color:var(--text-secondary); font-size:12px; margin-top:2px;">
-              Assigned since: <strong>${formatDate(a.assignedDate)}</strong>
+          `).join('') : '<p style="font-size:13px;color:var(--text-secondary);text-align:center;padding:20px 0;">No products currently assigned.</p>'}
+        </div>
+
+        <!-- Product History -->
+        <div class="card" style="padding: 24px;">
+          <h4 style="margin-bottom:16px; font-size:15px; color:var(--text); font-weight:600; border-bottom:1px solid var(--border); padding-bottom:12px;">Product History / Usage Log (${empHistory.length})</h4>
+          ${empHistory.length ? `
+            <div class="table-wrap">
+              <table style="width:100%; border-collapse: collapse;">
+                <thead>
+                  <tr>
+                    <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border); text-align:left;">Product</th>
+                    <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border); text-align:left;">Action</th>
+                    <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border); text-align:left;">Date</th>
+                    <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border); text-align:left;">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${empHistory.map(h => {
+                    const actColor = { Assigned: 'var(--accent)', Returned: 'var(--success)', Damaged: 'var(--danger)', Repair: 'var(--warning)', Added: 'var(--purple)', Repaired: 'var(--success)', Removed: 'var(--danger)' };
+                    return `
+                      <tr>
+                        <td style="padding:10px 12px; font-size:13px; border-bottom: 1px solid var(--border);">
+                          <div style="font-weight:600; color:var(--text);">${h.productName}</div>
+                          <code style="font-size:11px; color:var(--text-secondary);">${h.productCode}</code>
+                        </td>
+                        <td style="padding:10px 12px; font-size:13px; font-weight:600; color:${actColor[h.action] || 'var(--text-secondary)'}; border-bottom: 1px solid var(--border);">${h.action}</td>
+                        <td style="padding:10px 12px; font-size:13px; color:var(--text-secondary); border-bottom: 1px solid var(--border);">${formatDate(h.date)}</td>
+                        <td style="padding:10px 12px; font-size:13px; color:var(--text-secondary); border-bottom: 1px solid var(--border); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${h.notes || ''}">${h.notes || '—'}</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
             </div>
-          </div>
-        `).join('') : '<p style="font-size:13px;color:var(--text-secondary);text-align:center;padding:20px 0;">No products currently assigned.</p>'}
+          ` : '<p style="font-size:13px;color:var(--text-secondary);text-align:center;padding:20px 0;">No history records found.</p>'}
+        </div>
       </div>
 
     </div>
@@ -715,35 +601,47 @@ function saveEmployee() {
   }
 
   const emp = {
-    id: editingId.emp || db.nextId.emp++,
     code, name, dept, role, email,
     phone,
     blood: document.getElementById('ef-blood').value.trim(),
     status,
     joinDate: document.getElementById('ef-join').value,
     resignDate,
-    address: document.getElementById('ef-addr').value.trim(),
-    updatedAt: Date.now()
+    address: document.getElementById('ef-addr').value.trim()
   };
-  if (editingId.emp) {
-    const i = db.employees.findIndex(x => x.id === editingId.emp);
-    db.employees[i] = emp;
-    showToast('Employee updated.', 'success');
-  } else {
-    db.employees.push(emp);
-    showToast('Employee added.', 'success');
-  }
-  
-  saveDb();
-  window.location.reload();
+
+  const url = editingId.emp ? `/api/employees/${editingId.emp}` : '/api/employees';
+  const method = editingId.emp ? 'PUT' : 'POST';
+
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(emp)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('API save employee error');
+    return res.json();
+  })
+  .then(data => {
+    reloadWithToast(editingId.emp ? 'Employee updated.' : 'Employee added successfully.', 'success');
+  })
+  .catch(err => {
+    console.error(err);
+    showToast('Failed to save employee.', 'error');
+  });
 }
 
 function deleteEmployee(id) {
   if (!confirm('Delete this employee?')) return;
-  db.employees = db.employees.filter(x => x.id !== id);
-  showToast('Employee deleted.', 'success');
-  saveDb();
-  window.location.reload();
+  fetch(`/api/employees/${id}`, { method: 'DELETE' })
+    .then(res => {
+      if (!res.ok) throw new Error('API delete error');
+      reloadWithToast('Employee deleted.', 'success');
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('Failed to delete employee.', 'error');
+    });
 }
 
 // ===================== CATEGORIES =====================
@@ -825,37 +723,41 @@ function saveCategory() {
   const name = document.getElementById('cf-name').value.trim();
   if (!name) { showToast('Category name required.', 'error'); return; }
 
-  if (editingId.cat !== null) {
-    // Update existing
-    const idx = db.categories.findIndex(c => (typeof c === 'string' ? c : c.name) === editingId.cat);
-    if (idx !== -1) {
-      const existing = db.categories[idx];
-      db.categories[idx] = {
-        name,
-        items: (typeof existing === 'object' && existing.items) ? existing.items : [],
-        ...(existing.subCategories ? { subCategories: existing.subCategories } : {}),
-        updatedAt: Date.now()
-      };
-    }
-    showToast('Category updated.', 'success');
-  } else {
-    // Check for duplicate
-    const exists = db.categories.some(c => (typeof c === 'string' ? c : c.name).toLowerCase() === name.toLowerCase());
-    if (exists) { showToast('Category already exists.', 'error'); return; }
-    db.categories.push({ name, items: [], updatedAt: Date.now() });
-    showToast('Category added.', 'success');
-  }
+  const existingCat = editingId.cat !== null ? db.categories.find(c => (typeof c === 'string' ? c : c.name) === editingId.cat) : null;
+  const items = existingCat ? (existingCat.items || []) : [];
+  
+  const url = editingId.cat !== null ? `/api/categories/${encodeURIComponent(editingId.cat)}` : '/api/categories';
+  const method = editingId.cat !== null ? 'PUT' : 'POST';
+  const body = { name, items };
 
-  saveDb();
-  window.location.reload();
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('API save category error');
+    showToast(editingId.cat !== null ? 'Category updated.' : 'Category added.', 'success');
+    window.location.reload();
+  })
+  .catch(err => {
+    console.error(err);
+    showToast('Failed to save category.', 'error');
+  });
 }
 
 function deleteCategory(catName) {
   if (!confirm('Delete this category?')) return;
-  db.categories = db.categories.filter(c => (typeof c === 'string' ? c : c.name) !== catName);
-  showToast('Category deleted.', 'success');
-  saveDb();
-  window.location.reload();
+  fetch(`/api/categories/${encodeURIComponent(catName)}`, { method: 'DELETE' })
+    .then(res => {
+      if (!res.ok) throw new Error('API delete category error');
+      showToast('Category deleted.', 'success');
+      window.location.reload();
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('Failed to delete category.', 'error');
+    });
 }
 
 // Stub functions kept to avoid any lingering references from old code
@@ -1090,38 +992,23 @@ function saveAccessoryItem() {
   if (!itemType) { showToast('Please select an item type.', 'error'); return; }
   if (!name) { showToast('Item name is required.', 'error'); return; }
 
-  const code = 'ACC' + String(db.nextId.prod).padStart(3, '0');
-  const prod = {
-    id: db.nextId.prod++,
-    code,
-    name,
-    cat: 'Accessories',
-    subCat: itemType,
-    brand,
-    serial: '',
-    purchaseDate: purchaseDate || today(),
-    qty,
-    status,
-    updatedAt: Date.now()
-  };
+  const body = { name, cat, itemType, brand, qty, date: purchaseDate || today(), status };
 
-  db.products.push(prod);
-  db.history.push({
-    id: db.nextId.history++,
-    productCode: prod.code,
-    productName: prod.name,
-    action: 'Added',
-    employee: '—',
-    date: today(),
-    notes: `Accessory item (${itemType}) added to inventory`,
-    updatedAt: Date.now()
+  fetch('/api/accessories', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('API save accessory error');
+    closeModal('accessory-modal');
+    showToast(`${itemType} "${name}" added successfully!`, 'success');
+    window.location.reload();
+  })
+  .catch(err => {
+    console.error(err);
+    showToast('Failed to add accessory.', 'error');
   });
-
-  closeModal('accessory-modal');
-  showToast(`${itemType} "${name}" added successfully!`, 'success');
-  renderItems();
-  updateBadges();
-  renderDashboard();
 }
 
 // ===================== PRODUCTS =====================
@@ -1149,6 +1036,7 @@ function renderProducts(page = tableState.products) {
       <td><strong>${p.name}</strong></td>
       <td><code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11px;">${p.code}</code></td>
       <td>${formatDate(p.purchaseDate)}</td>
+      <td>${statusBadge(p.status)}</td>
       <td>
         <div style="display:flex;gap:4px;">
           <button class="btn-icon view" onclick="viewProduct(${p.id})">
@@ -1171,25 +1059,77 @@ function renderProducts(page = tableState.products) {
 
 function viewProduct(id) {
   const p = db.products.find(x => x.id === id);
+  if (!p) return;
   const history = db.history.filter(h => h.productCode === p.code);
-  document.getElementById('prod-detail-body').innerHTML = `
-    <div class="detail-section">
-      <h4>Product Information</h4>
-      <div class="detail-grid">
-        <div class="detail-item"><div class="di-label">Product Code</div><div class="di-value">${p.code}</div></div>
-        <div class="detail-item"><div class="di-label">Name</div><div class="di-value">${p.name}</div></div>
-        <div class="detail-item"><div class="di-label">Category</div><div class="di-value">${p.cat}</div></div>
-        <div class="detail-item"><div class="di-label">Purchase Date</div><div class="di-value">${formatDate(p.purchaseDate)}</div></div>
+  const actionColor = { Assigned: 'var(--accent)', Returned: 'var(--success)', Damaged: 'var(--danger)', Repair: 'var(--warning)', Added: 'var(--purple)', Repaired: 'var(--success)', Removed: 'var(--danger)' };
+  
+  document.getElementById('prod-detail-page-content').innerHTML = `
+    <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; align-items: start;">
+      
+      <!-- Left side: Product details -->
+      <div class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+        <div style="display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--border);padding-bottom:16px;">
+          <div class="avatar" style="width:64px;height:64px;font-size:22px;font-weight:600;background:var(--accent-light);display:flex;align-items:center;justify-content:center;color:var(--accent);border-radius:50%;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28">
+              <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size:20px;font-weight:700;color:var(--text);">${p.name}</div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">${p.cat} · ${p.brand || '—'}</div>
+          </div>
+        </div>
+        
+        <div>
+          <h4 style="margin-bottom:12px; font-size:15px; color:var(--text); font-weight:600;">Product Information</h4>
+          <div class="detail-grid" style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+            <div class="detail-item"><div class="di-label">Product Code</div><div class="di-value">${p.code}</div></div>
+            <div class="detail-item"><div class="di-label">Category</div><div class="di-value">${p.cat}</div></div>
+            <div class="detail-item"><div class="di-label">Sub-Category</div><div class="di-value">${p.subCat || '—'}</div></div>
+            <div class="detail-item"><div class="di-label">Brand</div><div class="di-value">${p.brand || '—'}</div></div>
+            <div class="detail-item"><div class="di-label">Serial Number</div><div class="di-value"><code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px;">${p.serial || '—'}</code></div></div>
+            <div class="detail-item"><div class="di-label">Purchase Date</div><div class="di-value">${formatDate(p.purchaseDate)}</div></div>
+            <div class="detail-item"><div class="di-label">Quantity</div><div class="di-value">${p.qty}</div></div>
+            <div class="detail-item"><div class="di-label">Status</div><div class="di-value">${statusBadge(p.status)}</div></div>
+          </div>
+        </div>
       </div>
+
+      <!-- Right side: Assignment History -->
+      <div class="card" style="padding: 24px;">
+        <h4 style="margin-bottom:16px; font-size:15px; color:var(--text); font-weight:600; border-bottom:1px solid var(--border); padding-bottom:12px;">Assignment History (${history.length})</h4>
+        ${history.length ? `
+          <div class="table-wrap">
+            <table style="width:100%; border-collapse: collapse;">
+              <thead>
+                <tr>
+                  <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border);">Action</th>
+                  <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border);">Employee</th>
+                  <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border);">Date</th>
+                  <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border);">Return Date</th>
+                  <th style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); background:var(--bg); padding:10px 12px; font-weight:700; border-bottom: 2px solid var(--border);">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${history.map(h => `
+                  <tr>
+                    <td style="padding:10px 12px; font-size:13px; font-weight:600; color:${actionColor[h.action] || 'var(--text-secondary)'}; border-bottom: 1px solid var(--border);">${h.action}</td>
+                    <td style="padding:10px 12px; font-size:13px; border-bottom: 1px solid var(--border);">${h.employee}</td>
+                    <td style="padding:10px 12px; font-size:13px; color:var(--text-secondary); border-bottom: 1px solid var(--border);">${formatDate(h.date)}</td>
+                    <td style="padding:10px 12px; font-size:13px; color:var(--text-secondary); border-bottom: 1px solid var(--border);">${(h.action === 'Repaired' || h.action === 'Returned') && h.returnDate ? formatDateTime(h.returnDate) : (h.returnDate ? formatDate(h.returnDate) : '<span style="color:var(--text-secondary);font-size:11px">—</span>')}</td>
+                    <td style="padding:10px 12px; font-size:13px; color:var(--text-secondary); border-bottom: 1px solid var(--border); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${h.notes || ''}">${h.notes || '—'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : '<p style="font-size:13px;color:var(--text-secondary);text-align:center;padding:20px 0;">No history records found.</p>'}
+      </div>
+
     </div>
-    <div class="detail-section">
-      <h4>Assignment History (${history.length})</h4>
-      ${history.length ? `<table style="width:100%;font-size:12px;">
-        <thead><tr><th style="text-align:left;padding:6px 8px;background:var(--bg);font-weight:600;color:var(--text-secondary)">Action</th><th style="text-align:left;padding:6px 8px;background:var(--bg);font-weight:600;color:var(--text-secondary)">Employee</th><th style="text-align:left;padding:6px 8px;background:var(--bg);font-weight:600;color:var(--text-secondary)">Date</th><th style="text-align:left;padding:6px 8px;background:var(--bg);font-weight:600;color:var(--text-secondary)">Notes</th></tr></thead>
-        <tbody>${history.map(h => `<tr><td style="padding:7px 8px">${h.action}</td><td style="padding:7px 8px">${h.employee}</td><td style="padding:7px 8px">${formatDate(h.date)}</td><td style="padding:7px 8px;color:var(--text-secondary)">${h.notes}</td></tr>`).join('')}</tbody>
-      </table>` : '<p style="font-size:13px;color:var(--text-secondary)">No history records.</p>'}
-    </div>`;
-  openModal('prod-detail-modal');
+  `;
+  
+  navigate('prod-detail');
 }
 
 let selectedProductTags = [];
@@ -1362,7 +1302,6 @@ function saveProduct() {
   const cat = document.getElementById('pf-cat').value;
   if (!cat) { showToast('Category is required.', 'error'); return; }
   
-  // Preserve existing properties if we are editing an existing product
   let existing = null;
   if (editingId.prod) {
     existing = db.products.find(x => x.id === editingId.prod);
@@ -1373,7 +1312,6 @@ function saveProduct() {
   const pfStatus = document.getElementById('pf-status');
 
   const prod = {
-    id: editingId.prod || db.nextId.prod++,
     code,
     name,
     cat,
@@ -1382,29 +1320,38 @@ function saveProduct() {
     serial: existing ? (existing.serial || '') : '',
     purchaseDate: document.getElementById('pf-date').value,
     qty: pfQty ? (parseInt(pfQty.value) || 1) : (existing ? (existing.qty || 1) : 1),
-    status: pfStatus ? (pfStatus.value || 'Available') : (existing ? (existing.status || 'Available') : 'Available'),
-    updatedAt: Date.now()
+    status: pfStatus ? (pfStatus.value || 'Available') : (existing ? (existing.status || 'Available') : 'Available')
   };
-  if (editingId.prod) {
-    const i = db.products.findIndex(x => x.id === editingId.prod);
-    db.products[i] = prod;
-    showToast('Product updated.', 'success');
-  } else {
-    db.products.push(prod);
-    db.history.push({ id: db.nextId.history++, productCode: prod.code, productName: prod.name, action: 'Added', employee: '—', date: today(), notes: 'Product added to inventory', updatedAt: Date.now() });
-    showToast('Product added.', 'success');
-  }
-  
-  saveDb();
-  window.location.reload();
+
+  const url = editingId.prod ? `/api/products/${editingId.prod}` : '/api/products';
+  const method = editingId.prod ? 'PUT' : 'POST';
+
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(prod)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('API save product error');
+    reloadWithToast(editingId.prod ? 'Product updated.' : 'Product added successfully.', 'success');
+  })
+  .catch(err => {
+    console.error(err);
+    showToast('Failed to save product.', 'error');
+  });
 }
 
 function deleteProduct(id) {
   if (!confirm('Delete this product?')) return;
-  db.products = db.products.filter(x => x.id !== id);
-  showToast('Product deleted.', 'success');
-  saveDb();
-  window.location.reload();
+  fetch(`/api/products/${id}`, { method: 'DELETE' })
+    .then(res => {
+      if (!res.ok) throw new Error('API delete product error');
+      reloadWithToast('Product deleted.', 'success');
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('Failed to delete product.', 'error');
+    });
 }
 
 let selectedAssignProducts = [];
@@ -1482,8 +1429,7 @@ function onAssignCategoryChange() {
   const prodCodeDisplay = document.getElementById('af-prod-code-display');
   const unitsInput = document.getElementById('af-units');
 
-  selectedAssignProducts = [];
-  renderAssignProductTags();
+  // Keep selected products intact when changing categories to allow multi-category assignments
 
   if (selectedProdIdInput) selectedProdIdInput.value = '';
   if (prodCodeDisplay) prodCodeDisplay.value = '';
@@ -1533,8 +1479,14 @@ function onAssignTypeChange() {
     return;
   }
 
-  // Get available products matching the category
-  let products = db.products.filter(p => p.cat.toLowerCase() === category.toLowerCase() && p.status === 'Available');
+  // Get products of this category that are Available OR belong to the current assignment being edited
+  const currentAssign = editingId.assign ? db.assignments.find(x => x.id === editingId.assign) : null;
+  const currentProdIds = currentAssign ? (currentAssign.productIds || [currentAssign.productId]) : [];
+
+  let products = db.products.filter(p => 
+    p.cat.toLowerCase() === category.toLowerCase() && 
+    (p.status === 'Available' || currentProdIds.includes(p.id))
+  );
 
   // Filter out products that are already selected in the tags list
   const selectedIds = selectedAssignProducts.map(p => p.id);
@@ -1609,7 +1561,8 @@ function updateAssignTotals() {
     selectedProdIdInput.value = selectedAssignProducts.length > 0 ? selectedAssignProducts[0].id : '';
   }
   if (prodCodeDisplay) {
-    prodCodeDisplay.value = selectedAssignProducts.map(p => p.code).join(', ');
+    const uniqueCodesList = [...new Set(selectedAssignProducts.map(p => p.code))];
+    prodCodeDisplay.value = uniqueCodesList.join(', ');
   }
   if (unitsInput) {
     unitsInput.value = selectedAssignProducts.length;
@@ -1691,13 +1644,18 @@ function renderAssigned(page = tableState.assigned) {
       <td>${formatDate(a.assignedDate)}</td>
       <td>${formatAssignmentReturnDate(a.returnDate)}</td>
       <td>
-        ${isReturned
-        ? `<span class="badge badge-available" style="padding:4px 8px; font-size:10px; font-weight:700;">Returned</span>`
-        : `<button class="btn btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="returnProduct(${a.id})">Return</button>`
-      }
-        <button class="btn-icon del" style="margin-left:4px;" onclick="deleteAssignment(${a.id})">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-        </button>
+        <div style="display:flex; gap:4px; align-items:center;">
+          ${isReturned
+          ? `<span class="badge badge-available" style="padding:4px 8px; font-size:10px; font-weight:700;">Returned</span>`
+          : `<button class="btn btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="returnProduct(${a.id})">Return</button>
+             <button class="btn-icon edit" title="Edit" onclick="editAssignment(${a.id})">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+             </button>`
+          }
+          <button class="btn-icon del" title="Delete" style="margin-left:4px;" onclick="deleteAssignment(${a.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          </button>
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -1707,6 +1665,11 @@ function renderAssigned(page = tableState.assigned) {
 }
 
 function openAssignModal() {
+  editingId.assign = null;
+  document.getElementById('assign-modal-title').textContent = 'Assign Product';
+  const footerBtn = document.querySelector('#assign-modal .modal-footer .btn-primary');
+  if (footerBtn) footerBtn.textContent = 'Add';
+
   selectedAssignProducts = []; // Clear selected products state
   // Clear autocomplete fields
   document.getElementById('af-emp-search').value = '';
@@ -1730,6 +1693,77 @@ function openAssignModal() {
   openModal('assign-modal');
 }
 
+function editAssignment(id) {
+  const a = db.assignments.find(x => x.id === id);
+  if (!a) return;
+
+  editingId.assign = id;
+  document.getElementById('assign-modal-title').textContent = 'Edit Assignment';
+
+  // Populate Employee
+  const emp = db.employees.find(e => e.id === a.employeeId);
+  if (emp) {
+    document.getElementById('af-emp-search').value = `${emp.name} (${emp.code})`;
+    document.getElementById('af-emp').value = emp.id;
+  }
+
+  // Populate Categories
+  const catSel = document.getElementById('af-cat');
+  catSel.innerHTML = '<option value="">Select Category</option>' + db.categories.map(c => {
+    const name = typeof c === 'string' ? c : c.name;
+    return `<option value="${name}">${name}</option>`;
+  }).join('');
+  
+  const firstProdId = a.productIds ? a.productIds[0] : a.productId;
+  const firstProd = db.products.find(p => p.id === firstProdId);
+  const category = firstProd ? firstProd.cat : '';
+  catSel.value = category;
+
+  // Initialize selected products
+  selectedAssignProducts = [];
+  const productIds = a.productIds || (a.productId ? [a.productId] : []);
+  productIds.forEach(pId => {
+    const prod = db.products.find(p => p.id === pId);
+    if (prod) {
+      selectedAssignProducts.push(prod);
+    }
+  });
+
+  renderAssignProductTags();
+  updateAssignTotals();
+
+  // Populate Type selection group
+  const typeGroup = document.getElementById('af-prod-type-group');
+  const typeSelect = document.getElementById('af-prod-type');
+  const catObj = db.categories.find(c => (typeof c === 'string' ? c : c.name) === category);
+  const items = (catObj && catObj.items && Array.isArray(catObj.items)) ? catObj.items : [];
+
+  if (items.length > 0) {
+    if (typeGroup) typeGroup.style.display = 'block';
+    if (typeSelect) {
+      let typeHtml = '<option value="">All Types</option>';
+      typeHtml += items.map(item => `<option value="${item}">${item}</option>`).join('');
+      typeSelect.innerHTML = typeHtml;
+      typeSelect.value = '';
+    }
+  } else {
+    if (typeGroup) typeGroup.style.display = 'none';
+    if (typeSelect) {
+      typeSelect.innerHTML = '<option value="">All Types</option>';
+      typeSelect.value = '';
+    }
+  }
+
+  onAssignTypeChange();
+
+  document.getElementById('af-date').value = a.assignedDate;
+  
+  const footerBtn = document.querySelector('#assign-modal .modal-footer .btn-primary');
+  if (footerBtn) footerBtn.textContent = 'Save';
+
+  openModal('assign-modal');
+}
+
 function saveAssignment() {
   const empId = parseInt(document.getElementById('af-emp').value);
   if (!empId) { showToast('Please search and select an employee from suggestions.', 'error'); return; }
@@ -1742,51 +1776,42 @@ function saveAssignment() {
   if (selectedAssignProducts.length === 0) { showToast('Please select at least one product.', 'error'); return; }
 
   const assignedDate = document.getElementById('af-date').value || today();
-  const returnDate = '';
-
+  
   const prodIds = selectedAssignProducts.map(p => p.id);
   const prodNames = selectedAssignProducts.map(p => p.name).join(', ');
-  const prodCodes = selectedAssignProducts.map(p => p.code).join(', ');
+  const uniqueCodesList = [...new Set(selectedAssignProducts.map(p => p.code))];
+  const prodCodes = uniqueCodesList.join(', ');
 
-  // Update statuses & logs for all selected products
-  selectedAssignProducts.forEach(p => {
-    const prod = db.products.find(x => x.id === p.id);
-    if (prod) {
-      prod.status = 'Assigned';
-      prod.updatedAt = Date.now();
-      db.history.push({
-        id: db.nextId.history++,
-        productCode: prod.code,
-        productName: prod.name,
-        action: 'Assigned',
-        employee: emp.name,
-        date: assignedDate,
-        returnDate: returnDate,
-        notes: `Assigned to ${emp.name}`,
-        updatedAt: Date.now()
-      });
-    }
-  });
-
-  const a = {
-    id: db.nextId.assign++,
-    productIds: prodIds,
-    productId: prodIds[0], // fallback compatibility
-    productName: prodNames,
-    productCode: prodCodes,
+  const body = {
     employeeId: empId,
     employeeName: emp.name,
     dept: emp.dept,
-    assignedDate: assignedDate,
-    returnDate: returnDate,
-    units: prodIds.length,
-    updatedAt: Date.now()
+    category,
+    productIds: prodIds,
+    productNames: prodNames,
+    productCodes: prodCodes,
+    assignedDate
   };
 
-  db.assignments.push(a);
+  const url = editingId.assign ? `/api/assignments/${editingId.assign}` : '/api/assignments';
+  const method = editingId.assign ? 'PUT' : 'POST';
 
-  saveDb();
-  window.location.reload();
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('API save assignment error');
+    const msg = editingId.assign 
+      ? 'Assignment updated successfully!' 
+      : `${emp.name} assigned successfully`;
+    reloadWithToast(msg, 'success');
+  })
+  .catch(err => {
+    console.error(err);
+    showToast('Failed to save assignment.', 'error');
+  });
 }
 
 function returnProduct(id) {
@@ -1794,100 +1819,37 @@ function returnProduct(id) {
   if (!a) return;
   if (!confirm(`Mark "${a.productName}" as returned?`)) return;
 
-  // Resolve product IDs
-  const productIds = a.productIds || (a.productId ? [a.productId] : []);
-  productIds.forEach(pId => {
-    const prod = db.products.find(p => p.id === pId);
-    if (prod) {
-      prod.status = 'Available';
-      prod.updatedAt = Date.now();
-      db.history.push({
-        id: db.nextId.history++,
-        productCode: prod.code,
-        productName: prod.name,
-        action: 'Returned',
-        employee: a.employeeName,
-        date: today(),
-        notes: 'Product returned from bundle',
-        updatedAt: Date.now()
-      });
-    }
+  fetch(`/api/assignments/${id}/return`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ returnDate: currentDateTime() })
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('API return error');
+    window.location.reload();
+  })
+  .catch(err => {
+    console.error(err);
+    showToast('Failed to return products.', 'error');
   });
-
-  // Update assignment returnDate to current date & time
-  a.returnDate = currentDateTime();
-  a.updatedAt = Date.now();
-
-  saveDb();
-  window.location.reload();
 }
 
 function deleteAssignment(id) {
   if (!confirm('Remove this assignment record?')) return;
-
-  const a = db.assignments.find(x => x.id === id);
-  if (a && !a.returnDate) {
-    const productIds = a.productIds || (a.productId ? [a.productId] : []);
-    productIds.forEach(pId => {
-      const prod = db.products.find(p => p.id === pId);
-      if (prod) {
-        prod.status = 'Available';
-      }
+  fetch(`/api/assignments/${id}`, { method: 'DELETE' })
+    .then(res => {
+      if (!res.ok) throw new Error('API delete assignment error');
+      showToast('Assignment removed.', 'success');
+      window.location.reload();
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('Failed to delete assignment.', 'error');
     });
-  }
-
-  db.assignments = db.assignments.filter(x => x.id !== id);
-  showToast('Assignment removed.', 'success');
-  saveDb();
-  window.location.reload();
 }
 
 
 
-// ===================== AVAILABLE =====================
-function renderAvailable(page = tableState.available) {
-  tableState.available = page;
-  const query = (tableState.availableQuery || '').trim().toLowerCase();
-  let avail = db.products.filter(p => p.status === 'Available');
-  if (query) {
-    avail = avail.filter(p => [p.name, p.code, p.brand, p.cat].some(val => (val || '').toLowerCase().includes(query)));
-  }
-  avail.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  const grid = document.getElementById('available-grid');
-  if (!grid) return;
-  const total = avail.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  if (page > totalPages) page = totalPages;
-  const start = (page - 1) * PAGE_SIZE;
-  const pageItems = avail.slice(start, start + PAGE_SIZE);
-
-  if (!total) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/></svg><p>No available products at this time.</p></div>';
-    updateTableInfo('available-table-info', 0, 0, 0);
-    renderPagination('available', total, page);
-    return;
-  }
-
-  grid.innerHTML = pageItems.map((p, i) =>
-    `<div class="product-card">
-      <div class="pc-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-      </div>
-      <h4>${p.name}</h4>
-      <div class="pc-code">${p.code}</div>
-      <div class="pc-meta">
-        <span><strong>Category:</strong> ${p.cat}</span>
-        <span><strong>Brand:</strong> ${p.brand || '—'}</span>
-        <span><strong>Purchase Date:</strong> ${formatDate(p.purchaseDate)}</span>
-        <span><strong>Qty:</strong> ${p.qty}</span>
-      </div>
-      <div style="margin-top:10px">${statusBadge(p.status)}</div>
-    </div>`
-  ).join('');
-
-  updateTableInfo('available-table-info', start + 1, Math.min(start + pageItems.length, total), total);
-  renderPagination('available', total, page);
-}
 
 // ===================== DAMAGE =====================
 function renderDamaged(page = tableState.damaged) {
@@ -1948,32 +1910,41 @@ function saveDamage() {
   const by = document.getElementById('df-by').value.trim();
   if (!by) { showToast('Please enter reporter name.', 'error'); return; }
 
-  const prod = db.products.find(p => p.id === prodId);
-  if (!prod) { showToast('Selected product not found.', 'error'); return; }
-
-  const d = {
-    id: db.nextId.dmg++,
-    productId: prodId, productCode: prod.code, productName: prod.name,
+  const body = {
+    productId: prodId,
     status,
     date: document.getElementById('df-date').value || today(),
     by,
-    notes: document.getElementById('df-notes').value.trim(),
-    updatedAt: Date.now()
+    notes: document.getElementById('df-notes').value.trim()
   };
-  db.damages.push(d);
-  prod.status = status === 'Damaged' ? 'Damaged' : 'Replaced';
-  prod.updatedAt = Date.now();
-  db.history.push({ id: db.nextId.history++, productCode: prod.code, productName: prod.name, action: status === 'Damaged' ? 'Damaged' : 'Replaced', employee: '—', date: d.date, notes: d.notes, updatedAt: Date.now() });
-  saveDb();
-  window.location.reload();
+
+  fetch('/api/damages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('API save damage error');
+    window.location.reload();
+  })
+  .catch(err => {
+    console.error(err);
+    showToast('Failed to save damage report.', 'error');
+  });
 }
 
 function deleteDamage(id) {
   if (!confirm('Delete this damage report?')) return;
-  db.damages = db.damages.filter(x => x.id !== id);
-  showToast('Report deleted.', 'success');
-  saveDb();
-  window.location.reload();
+  fetch(`/api/damages/${id}`, { method: 'DELETE' })
+    .then(res => {
+      if (!res.ok) throw new Error('API delete damage error');
+      showToast('Report deleted.', 'success');
+      window.location.reload();
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('Failed to delete report.', 'error');
+    });
 }
 
 function openDmgModal(defaultAction = '') {
@@ -1998,10 +1969,11 @@ function suggestDamageProducts(query) {
 
   const q = query.trim().toLowerCase();
   
-  // Show all products if empty, or filter if not
+  // Show available products only, and filter by query if provided
+  const availableProds = db.products.filter(p => p.status === 'Available');
   const filtered = q
-    ? db.products.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
-    : db.products;
+    ? availableProds.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
+    : availableProds;
 
   if (filtered.length === 0) {
     container.style.display = 'none';
@@ -2084,7 +2056,7 @@ function renderRepair(page = tableState.repair) {
         <div class="repair-meta-item"><div class="rm-label">Contact</div><div class="rm-value">${r.contact}</div></div>
         <div class="repair-meta-item"><div class="rm-label">Taken By</div><div class="rm-value">${r.takenBy}</div></div>
         <div class="repair-meta-item"><div class="rm-label">Date Sent</div><div class="rm-value">${formatDate(r.dateSent)}</div></div>
-        <div class="repair-meta-item"><div class="rm-label">Expected Return</div><div class="rm-value">${formatDate(r.expectedDate)}</div></div>
+        ${r.status === 'Completed' ? `<div class="repair-meta-item"><div class="rm-label">Return Date</div><div class="rm-value">${formatDateTime(r.completedDate)}</div></div>` : ''}
         <div class="repair-meta-item"><div class="rm-label">Notes</div><div class="rm-value">${r.notes}</div></div>
       </div>
     </div>`
@@ -2122,50 +2094,57 @@ function saveRepair() {
     return;
   }
 
-  const prod = db.products.find(p => p.id === prodId);
-  if (!prod) { showToast('Selected product not found.', 'error'); return; }
-
-  const r = {
-    id: db.nextId.repair++,
-    productId: prodId, productCode: prod.code, productName: prod.name,
+  const body = {
+    productId: prodId,
     center,
     contact,
     takenBy,
     dateSent: document.getElementById('rf-sent').value || today(),
-    expectedDate: document.getElementById('rf-expected').value,
     status,
-    notes: document.getElementById('rf-notes').value.trim(),
-    updatedAt: Date.now()
+    notes: document.getElementById('rf-notes').value.trim()
   };
-  db.repairs.push(r);
-  prod.status = 'Repair';
-  prod.updatedAt = Date.now();
-  db.history.push({ id: db.nextId.history++, productCode: prod.code, productName: prod.name, action: 'Repair', employee: '—', date: r.dateSent, notes: `Sent to ${r.center}`, updatedAt: Date.now() });
-  saveDb();
-  window.location.reload();
+
+  fetch('/api/repairs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('API save repair error');
+    window.location.reload();
+  })
+  .catch(err => {
+    console.error(err);
+    showToast('Failed to save repair record.', 'error');
+  });
 }
 
 function deleteRepair(id) {
   if (!confirm('Delete this repair record?')) return;
-  db.repairs = db.repairs.filter(x => x.id !== id);
-  showToast('Record deleted.', 'success');
-  saveDb();
-  window.location.reload();
+  fetch(`/api/repairs/${id}`, { method: 'DELETE' })
+    .then(res => {
+      if (!res.ok) throw new Error('API delete repair error');
+      showToast('Record deleted.', 'success');
+      window.location.reload();
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('Failed to delete record.', 'error');
+    });
 }
 
 function completeRepair(id) {
-  const r = db.repairs.find(x => x.id === id);
-  if (!r) return;
-  r.status = 'Completed';
-  r.updatedAt = Date.now();
-  const prod = db.products.find(p => p.id === r.productId);
-  if (prod) {
-    prod.status = 'Available';
-    prod.updatedAt = Date.now();
-  }
-  db.history.push({ id: db.nextId.history++, productCode: r.productCode, productName: r.productName, action: 'Repaired', employee: '—', date: today(), notes: 'Repair completed, returned to inventory', updatedAt: Date.now() });
-  saveDb();
-  window.location.reload();
+  if (!confirm('Mark this repair as completed?')) return;
+  fetch(`/api/repairs/${id}/complete`, { method: 'PUT' })
+    .then(res => {
+      if (!res.ok) throw new Error('API complete repair error');
+      showToast('Repair completed, returned to inventory.', 'success');
+      window.location.reload();
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('Failed to complete repair.', 'error');
+    });
 }
 
 function openRepairModal() {
@@ -2175,7 +2154,6 @@ function openRepairModal() {
   document.getElementById('rf-center').value = '';
   document.getElementById('rf-contact').value = '';
   document.getElementById('rf-taken').value = '';
-  document.getElementById('rf-expected').value = '';
   document.getElementById('rf-status').value = '';
   document.getElementById('rf-notes').value = '';
   document.getElementById('rf-sent').value = today();
@@ -2195,10 +2173,11 @@ function suggestRepairProducts(query) {
 
   const q = query.trim().toLowerCase();
   
-  // Show all products if empty, or filter if not
+  // Show available products only, and filter by query if provided
+  const availableProds = db.products.filter(p => p.status === 'Available');
   const filtered = q
-    ? db.products.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
-    : db.products;
+    ? availableProds.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
+    : availableProds;
 
   if (filtered.length === 0) {
     container.style.display = 'none';
@@ -2269,7 +2248,7 @@ function renderHistory(query = tableState.historyQuery, page = tableState.histor
     return;
   }
 
-  const actionColor = { Assigned: 'var(--accent)', Returned: 'var(--success)', Damaged: 'var(--danger)', Repair: 'var(--warning)', Added: 'var(--purple)', Repaired: 'var(--success)' };
+  const actionColor = { Assigned: 'var(--accent)', Returned: 'var(--success)', Damaged: 'var(--danger)', Repair: 'var(--warning)', Added: 'var(--purple)', Repaired: 'var(--success)', Removed: 'var(--danger)' };
   tbody.innerHTML = pageItems.map(h =>
     `<tr>
       <td><code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11px;">${h.productCode}</code></td>
@@ -2277,7 +2256,7 @@ function renderHistory(query = tableState.historyQuery, page = tableState.histor
       <td><span style="color:${actionColor[h.action] || 'var(--text-secondary)'};font-weight:600;font-size:12px;">${h.action}</span></td>
       <td>${h.employee}</td>
       <td>${formatDate(h.date)}</td>
-      <td>${h.returnDate ? formatDate(h.returnDate) : '<span style="color:var(--text-secondary);font-size:11px">—</span>'}</td>
+      <td>${(h.action === 'Repaired' || h.action === 'Returned') && h.returnDate ? formatDateTime(h.returnDate) : (h.returnDate ? formatDate(h.returnDate) : '<span style="color:var(--text-secondary);font-size:11px">—</span>')}</td>
       <td style="color:var(--text-secondary)">${h.notes}</td>
     </tr>`
   ).join('');
@@ -2318,10 +2297,6 @@ function handleGlobalSearch(q) {
       if (assignSearchInput) assignSearchInput.value = q;
       tableState.assignedQuery = query;
       renderAssigned(1);
-      break;
-    case 'available':
-      tableState.availableQuery = query;
-      renderAvailable(1);
       break;
     case 'damaged':
       tableState.damagedQuery = query;
@@ -2378,6 +2353,20 @@ function formatDate(d) {
   return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+function formatDateTime(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return '—';
+  return dt.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
 function today() {
   return new Date().toISOString().split('T')[0];
 }
@@ -2425,6 +2414,11 @@ function showToast(msg, type = '') {
   setTimeout(() => t.remove(), 3000);
 }
 
+function reloadWithToast(msg, type = 'success') {
+  sessionStorage.setItem('pending_toast', JSON.stringify({ msg, type }));
+  window.location.reload();
+}
+
 function exportJSON() {
   const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -2439,22 +2433,44 @@ function exportPDF() {
 }
 
 // ===================== INIT =====================
-function initBaselineTimestamps() {
-  const collections = ['employees', 'categories', 'products', 'assignments', 'damages', 'repairs', 'history'];
-  collections.forEach(col => {
-    if (db[col] && Array.isArray(db[col])) {
-      db[col].forEach((item, index) => {
-        if (item && typeof item === 'object') {
-          item.updatedAt = item.updatedAt || (Date.now() - (db[col].length - index) * 60000);
-        }
-      });
+async function initApp() {
+  try {
+    const res = await fetch('/api/db');
+    if (!res.ok) throw new Error('API server error');
+    db = await res.json();
+  } catch (err) {
+    console.error('Failed to load database from PostgreSQL API, falling back to local storage', err);
+    const savedDb = localStorage.getItem('pms_db');
+    if (savedDb) {
+      try {
+        db = JSON.parse(savedDb);
+      } catch (e) {
+        console.error('Error loading saved database', e);
+      }
     }
-  });
+  }
+
+  console.log('PMS Database Loaded:', db);
+
+  const pendingToast = sessionStorage.getItem('pending_toast');
+  if (pendingToast) {
+    try {
+      const { msg, type } = JSON.parse(pendingToast);
+      showToast(msg, type);
+    } catch (e) {
+      console.error(e);
+    }
+    sessionStorage.removeItem('pending_toast');
+  }
+
+  populateCategorySelects();
+  const savedPage = sessionStorage.getItem('pms_active_page') || 'dashboard';
+  let startPage = savedPage;
+  if (savedPage === 'emp-detail') startPage = 'employees';
+  else if (savedPage === 'prod-detail') startPage = 'products';
+  navigate(startPage);
 }
-initBaselineTimestamps();
-populateCategorySelects();
-const savedPage = sessionStorage.getItem('pms_active_page') || 'dashboard';
-navigate(savedPage === 'emp-detail' ? 'employees' : savedPage);
+initApp();
 
 document.addEventListener('click', function (e) {
   // Category Name suggestions close on click outside
