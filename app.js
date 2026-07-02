@@ -64,6 +64,9 @@ function getFilteredEmployees() {
 
 function getFilteredProducts() {
   return db.products.filter(p => {
+    // Exclude damaged/replaced products and products with damage reports from the main product table
+    if (p.status === 'Damaged' || p.status === 'Replaced' || db.damages.some(d => d.productId === p.id)) return false;
+
     const query = tableState.productQuery;
     const matchesQuery = !query || [p.code, p.name, p.cat, p.brand, p.subCat]
       .some(value => value && value.toLowerCase().includes(query));
@@ -1443,24 +1446,24 @@ function onAssignCategoryChange() {
     return;
   }
 
-  // Check if category has sub-items/types configured
-  const catObj = db.categories.find(c => (typeof c === 'string' ? c : c.name) === category);
+  // Get unique subCat values AND unique product names under this category case-insensitively
+  const catObj = db.categories.find(c => (typeof c === 'string' ? c : c.name).toLowerCase() === category.toLowerCase());
   const items = (catObj && catObj.items && Array.isArray(catObj.items)) ? catObj.items : [];
+  const prodSubCats = db.products
+    .filter(p => p.cat && p.cat.toLowerCase() === category.toLowerCase() && p.subCat)
+    .map(p => p.subCat);
+  const prodNames = db.products
+    .filter(p => p.cat && p.cat.toLowerCase() === category.toLowerCase() && p.name)
+    .map(p => p.name);
+  const combinedItems = Array.from(new Set([...items, ...prodSubCats, ...prodNames])).filter(Boolean);
 
-  if (items.length > 0) {
-    if (typeGroup) typeGroup.style.display = 'block';
-    if (typeSelect) {
-      let typeHtml = '<option value="">All Types</option>';
-      typeHtml += items.map(item => `<option value="${item}">${item}</option>`).join('');
-      typeSelect.innerHTML = typeHtml;
-      typeSelect.value = '';
-    }
-  } else {
-    if (typeGroup) typeGroup.style.display = 'none';
-    if (typeSelect) {
-      typeSelect.innerHTML = '<option value="">All Types</option>';
-      typeSelect.value = '';
-    }
+  // Always show product type (sub-category) selector when category is selected
+  if (typeGroup) typeGroup.style.display = 'block';
+  if (typeSelect) {
+    let typeHtml = '<option value="">All Types</option>';
+    typeHtml += combinedItems.map(item => `<option value="${item}">${item}</option>`).join('');
+    typeSelect.innerHTML = typeHtml;
+    typeSelect.value = '';
   }
 
   // Refresh products list for the category (initially with no type filter)
@@ -1670,7 +1673,8 @@ function openAssignModal() {
   const footerBtn = document.querySelector('#assign-modal .modal-footer .btn-primary');
   if (footerBtn) footerBtn.textContent = 'Add';
 
-  selectedAssignProducts = []; // Clear selected products state
+  clearAssignProduct();
+
   // Clear autocomplete fields
   document.getElementById('af-emp-search').value = '';
   document.getElementById('af-emp').value = '';
@@ -1686,6 +1690,7 @@ function openAssignModal() {
     const name = typeof c === 'string' ? c : c.name;
     return `<option value="${name}">${name}</option>`;
   }).join('');
+  catSel.value = '';
 
   onAssignCategoryChange();
 

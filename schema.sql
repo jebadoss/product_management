@@ -1,6 +1,16 @@
--- PostgreSQL Database Schema for Product Management System
+-- PostgreSQL Database Schema for Product Management System (3NF Normalized)
 
--- 1. Categories Table
+-- Drop existing tables in correct order if they exist
+DROP TABLE IF EXISTS assignment_products CASCADE;
+DROP TABLE IF EXISTS assignments CASCADE;
+DROP TABLE IF EXISTS damages CASCADE;
+DROP TABLE IF EXISTS repairs CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS employees CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS history CASCADE;
+
+-- 1. Categories Table (Kept original structure with items array)
 CREATE TABLE IF NOT EXISTS categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
@@ -25,7 +35,7 @@ CREATE TABLE IF NOT EXISTS employees (
     updated_at BIGINT NOT NULL
 );
 
--- 3. Products Table
+-- 3. Products Table (Kept original structure referencing category name string)
 CREATE TABLE IF NOT EXISTS products (
     id SERIAL PRIMARY KEY,
     code VARCHAR(50) NOT NULL,
@@ -40,12 +50,10 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at BIGINT NOT NULL
 );
 
--- 4. Assignments Table
+-- 4. Assignments Table (3NF - Removed redundant employee_name and dept columns)
 CREATE TABLE IF NOT EXISTS assignments (
     id SERIAL PRIMARY KEY,
     employee_id INT REFERENCES employees(id) ON DELETE SET NULL,
-    employee_name VARCHAR(100) NOT NULL,
-    dept VARCHAR(100),
     assigned_date DATE NOT NULL,
     return_date VARCHAR(100), -- Storing custom local formatted string as in existing code
     units INT DEFAULT 1,
@@ -59,12 +67,10 @@ CREATE TABLE IF NOT EXISTS assignment_products (
     PRIMARY KEY (assignment_id, product_id)
 );
 
--- 6. Damages Table
+-- 6. Damages Table (3NF - Removed redundant product_code and product_name columns)
 CREATE TABLE IF NOT EXISTS damages (
     id SERIAL PRIMARY KEY,
     product_id INT REFERENCES products(id) ON DELETE CASCADE,
-    product_code VARCHAR(50) NOT NULL,
-    product_name VARCHAR(150) NOT NULL,
     status VARCHAR(20) NOT NULL,
     date DATE NOT NULL,
     "by" VARCHAR(100) NOT NULL,
@@ -72,12 +78,10 @@ CREATE TABLE IF NOT EXISTS damages (
     updated_at BIGINT NOT NULL
 );
 
--- 7. Repairs Table
+-- 7. Repairs Table (3NF - Removed redundant product_code and product_name columns)
 CREATE TABLE IF NOT EXISTS repairs (
     id SERIAL PRIMARY KEY,
     product_id INT REFERENCES products(id) ON DELETE CASCADE,
-    product_code VARCHAR(50) NOT NULL,
-    product_name VARCHAR(150) NOT NULL,
     center VARCHAR(150),
     contact VARCHAR(20),
     taken_by VARCHAR(100),
@@ -89,7 +93,7 @@ CREATE TABLE IF NOT EXISTS repairs (
     updated_at BIGINT NOT NULL
 );
 
--- 8. History Table
+-- 8. History Table (Audit log - remains snapshot)
 CREATE TABLE IF NOT EXISTS history (
     id SERIAL PRIMARY KEY,
     product_code VARCHAR(50) NOT NULL,

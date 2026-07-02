@@ -748,6 +748,12 @@
               <option value="">Select category</option>
             </select>
           </div>
+          <div class="form-group">
+            <label>Quantity *</label>
+            <input type="number" id="pf-qty" placeholder="Enter quantity" min="1" step="1" value="1"
+              onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '')" style="width:100%;">
+          </div>
           <div class="form-group"><label>Purchase Date</label><input type="date" id="pf-date"
               placeholder="Select purchase date"></div>
         </div>

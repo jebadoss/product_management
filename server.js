@@ -25,9 +25,21 @@ app.get('/api/db', async (req, res) => {
     const employees = await pool.query('SELECT * FROM employees');
     const categories = await pool.query('SELECT * FROM categories');
     const products = await pool.query('SELECT * FROM products');
-    const assignments = await pool.query('SELECT * FROM assignments');
-    const damages = await pool.query('SELECT * FROM damages');
-    const repairs = await pool.query('SELECT * FROM repairs');
+    const assignments = await pool.query(`
+      SELECT a.*, e.name AS employee_name, e.dept
+      FROM assignments a
+      LEFT JOIN employees e ON a.employee_id = e.id
+    `);
+    const damages = await pool.query(`
+      SELECT d.*, p.code AS product_code, p.name AS product_name
+      FROM damages d
+      LEFT JOIN products p ON d.product_id = p.id
+    `);
+    const repairs = await pool.query(`
+      SELECT r.*, p.code AS product_code, p.name AS product_name
+      FROM repairs r
+      LEFT JOIN products p ON r.product_id = p.id
+    `);
     const history = await pool.query('SELECT * FROM history');
     
     // Map assignments with productIds array from junction table
@@ -54,7 +66,7 @@ app.get('/api/db', async (req, res) => {
       return {
         id: a.id,
         employeeId: a.employee_id,
-        employeeName: a.employee_name,
+        employeeName: a.employee_name || '—',
         dept: a.dept || '',
         assignedDate: a.assigned_date ? a.assigned_date.toISOString().split('T')[0] : '',
         returnDate: a.return_date || '',
@@ -106,8 +118,8 @@ app.get('/api/db', async (req, res) => {
     const damagesList = damages.rows.map(d => ({
       id: d.id,
       productId: d.product_id,
-      productCode: d.product_code,
-      productName: d.product_name,
+      productCode: d.product_code || '—',
+      productName: d.product_name || '—',
       status: d.status,
       date: d.date ? d.date.toISOString().split('T')[0] : '',
       by: d.by,
@@ -118,8 +130,8 @@ app.get('/api/db', async (req, res) => {
     const repairsList = repairs.rows.map(r => ({
       id: r.id,
       productId: r.product_id,
-      productCode: r.product_code,
-      productName: r.product_name,
+      productCode: r.product_code || '—',
+      productName: r.product_name || '—',
       center: r.center || '',
       contact: r.contact || '',
       takenBy: r.taken_by || '',
@@ -287,21 +299,52 @@ app.post('/api/products', async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    const prodResult = await client.query(
-      `INSERT INTO products (code, name, cat, sub_cat, brand, serial, purchase_date, qty, status, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
-      [code, name, cat, subCat || '', brand || '', serial || '', purchaseDate || null, qty || 1, status || 'Available', Date.now()]
-    );
-    const newProdId = prodResult.rows[0].id;
+    const insertQty = parseInt(qty) || 1;
     
-    await client.query(
-      `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [code, name, 'Added', '—', new Date(), 'Product added to inventory', Date.now()]
-    );
+    // Helper function to parse and generate sequential codes
+    const generateSequentialCodes = (startCode, count) => {
+      const match = startCode.match(/^(.*?)(\d+)$/);
+      if (!match) {
+        const codes = [];
+        for (let i = 0; i < count; i++) {
+          codes.push(count === 1 ? startCode : `${startCode}-${i + 1}`);
+        }
+        return codes;
+      }
+      const prefix = match[1];
+      const numStr = match[2];
+      const startNum = parseInt(numStr, 10);
+      const width = numStr.length;
+      
+      const codes = [];
+      for (let i = 0; i < count; i++) {
+        const currentNum = startNum + i;
+        const currentNumStr = String(currentNum).padStart(width, '0');
+        codes.push(prefix + currentNumStr);
+      }
+      return codes;
+    };
+    
+    const codes = generateSequentialCodes(code, insertQty);
+    let lastInsertedId = null;
+    
+    for (const currentCode of codes) {
+      const prodResult = await client.query(
+        `INSERT INTO products (code, name, cat, sub_cat, brand, serial, purchase_date, qty, status, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+        [currentCode, name, cat, subCat || '', brand || '', serial || '', purchaseDate || null, 1, status || 'Available', Date.now()]
+      );
+      lastInsertedId = prodResult.rows[0].id;
+      
+      await client.query(
+        `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [currentCode, name, 'Added', '—', new Date(), 'Product added to inventory', Date.now()]
+      );
+    }
     
     await client.query('COMMIT');
-    res.json({ success: true, id: newProdId });
+    res.json({ success: true, id: lastInsertedId });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
@@ -382,9 +425,9 @@ app.post('/api/assignments', async (req, res) => {
     await client.query('BEGIN');
     
     const assignRes = await client.query(
-      `INSERT INTO assignments (employee_id, employee_name, dept, assigned_date, return_date, units, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [employeeId, employeeName, dept, assignedDate, '', productIds.length, Date.now()]
+      `INSERT INTO assignments (employee_id, assigned_date, return_date, units, updated_at)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [employeeId, assignedDate, '', productIds.length, Date.now()]
     );
     const assignId = assignRes.rows[0].id;
     
@@ -453,9 +496,9 @@ app.put('/api/assignments/:id', async (req, res) => {
     
     await client.query(
       `UPDATE assignments 
-       SET employee_id = $1, employee_name = $2, dept = $3, assigned_date = $4, units = $5, updated_at = $6
-       WHERE id = $7`,
-      [employeeId, employeeName, dept, assignedDate, productIds.length, Date.now(), id]
+       SET employee_id = $1, assigned_date = $2, units = $3, updated_at = $4
+       WHERE id = $5`,
+      [employeeId, assignedDate, productIds.length, Date.now(), id]
     );
     
     await client.query('COMMIT');
@@ -476,8 +519,14 @@ app.put('/api/assignments/:id/return', async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    const assignRes = await client.query('SELECT employee_name FROM assignments WHERE id = $1', [id]);
-    const employeeName = assignRes.rows[0].employee_name;
+    const assignRes = await client.query(
+      `SELECT e.name AS employee_name 
+       FROM assignments a
+       LEFT JOIN employees e ON a.employee_id = e.id 
+       WHERE a.id = $1`, 
+      [id]
+    );
+    const employeeName = assignRes.rowCount > 0 && assignRes.rows[0].employee_name ? assignRes.rows[0].employee_name : '—';
     
     const prodsRes = await client.query('SELECT product_id FROM assignment_products WHERE assignment_id = $1', [id]);
     for (const row of prodsRes.rows) {
@@ -548,9 +597,9 @@ app.post('/api/damages', async (req, res) => {
     const prod = prodRes.rows[0];
     
     await client.query(
-      `INSERT INTO damages (product_id, product_code, product_name, status, date, "by", notes, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [productId, prod.code, prod.name, status, date, by, notes, Date.now()]
+      `INSERT INTO damages (product_id, status, date, "by", notes, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [productId, status, date, by, notes, Date.now()]
     );
     
     const finalStatus = status === 'Damaged' ? 'Damaged' : 'Replaced';
@@ -598,9 +647,9 @@ app.post('/api/repairs', async (req, res) => {
     
     const completedDate = status === 'Completed' ? new Date() : null;
     await client.query(
-      `INSERT INTO repairs (product_id, product_code, product_name, center, contact, taken_by, date_sent, expected_date, status, completed_date, notes, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-      [productId, prod.code, prod.name, center, contact, takenBy, dateSent, expectedDate || null, status, completedDate, notes, Date.now()]
+      `INSERT INTO repairs (product_id, center, contact, taken_by, date_sent, expected_date, status, completed_date, notes, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [productId, center, contact, takenBy, dateSent, expectedDate || null, status, completedDate, notes, Date.now()]
     );
     
     const prodStatus = status === 'Completed' ? 'Available' : 'Repair';
@@ -637,7 +686,13 @@ app.put('/api/repairs/:id/complete', async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    const repairRes = await client.query('SELECT product_id, product_code, product_name FROM repairs WHERE id = $1', [id]);
+    const repairRes = await client.query(
+      `SELECT r.product_id, p.code AS product_code, p.name AS product_name 
+       FROM repairs r
+       LEFT JOIN products p ON r.product_id = p.id
+       WHERE r.id = $1`, 
+      [id]
+    );
     const r = repairRes.rows[0];
     
     await client.query("UPDATE repairs SET status = 'Completed', completed_date = $2, updated_at = $3 WHERE id = $1", [id, new Date(), Date.now()]);

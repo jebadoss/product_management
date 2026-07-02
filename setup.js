@@ -15,8 +15,8 @@ async function setup() {
   const client = new Client({ ...dbConfig, database: 'postgres' });
   try {
     await client.connect();
-    
-    const dbName = process.env.DB_NAME || 'apple';
+
+    const dbName = process.env.DB_NAME || 'orange';
     const res = await client.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [dbName]);
     if (res.rowCount === 0) {
       console.log(`Database "${dbName}" does not exist. Creating it...`);
@@ -33,13 +33,13 @@ async function setup() {
   }
 
   console.log('Connecting to target database to run schema migrations...');
-  const targetClient = new Client({ ...dbConfig, database: process.env.DB_NAME || 'apple' });
+  const targetClient = new Client({ ...dbConfig, database: process.env.DB_NAME || 'orange' });
   try {
     await targetClient.connect();
-    
+
     const schemaPath = path.join(__dirname, 'schema.sql');
     const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-    
+
     console.log('Running DDL from schema.sql...');
     await targetClient.query(schemaSql);
     console.log('Schema configured successfully.');

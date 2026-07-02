@@ -6,7 +6,7 @@ const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   password: process.env.DB_PASSWORD || 'qlljvr9ly',
   port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'apple',
+  database: process.env.DB_NAME || 'orange',
 };
 
 async function clearDb() {
@@ -14,7 +14,7 @@ async function clearDb() {
   const client = new Client(dbConfig);
   try {
     await client.connect();
-    
+
     // Truncate tables with CASCADE
     console.log('Clearing all tables...');
     await client.query(
