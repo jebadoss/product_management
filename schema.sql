@@ -10,11 +10,10 @@ DROP TABLE IF EXISTS employees CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS history CASCADE;
 
--- 1. Categories Table (Kept original structure with items array)
+-- 1. Categories Table
 CREATE TABLE IF NOT EXISTS categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
-    items TEXT[] DEFAULT '{}',
     updated_at BIGINT NOT NULL
 );
 
@@ -41,9 +40,6 @@ CREATE TABLE IF NOT EXISTS products (
     code VARCHAR(50) NOT NULL,
     name VARCHAR(150) NOT NULL,
     cat VARCHAR(100) REFERENCES categories(name) ON UPDATE CASCADE ON DELETE RESTRICT,
-    sub_cat VARCHAR(100),
-    brand VARCHAR(100),
-    serial VARCHAR(100),
     purchase_date DATE,
     qty INT DEFAULT 1,
     status VARCHAR(20) DEFAULT 'Available',

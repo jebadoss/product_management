@@ -81,7 +81,6 @@ app.get('/api/db', async (req, res) => {
 
     const categoriesList = categories.rows.map(c => ({
       name: c.name,
-      items: c.items || [],
       updatedAt: parseInt(c.updated_at)
     }));
 
@@ -90,9 +89,6 @@ app.get('/api/db', async (req, res) => {
       code: p.code,
       name: p.name,
       cat: p.cat,
-      subCat: p.sub_cat || '',
-      brand: p.brand || '',
-      serial: p.serial || '',
       purchaseDate: p.purchase_date ? p.purchase_date.toISOString().split('T')[0] : '',
       qty: p.qty,
       status: p.status,
@@ -249,7 +245,7 @@ app.delete('/api/employees/:id', async (req, res) => {
 app.post('/api/categories', async (req, res) => {
   const { name } = req.body;
   try {
-    await pool.query('INSERT INTO categories (name, items, updated_at) VALUES ($1, $2, $3)', [name, [], Date.now()]);
+    await pool.query('INSERT INTO categories (name, updated_at) VALUES ($1, $2)', [name, Date.now()]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -259,17 +255,12 @@ app.post('/api/categories', async (req, res) => {
 
 app.put('/api/categories/:name', async (req, res) => {
   const oldName = req.params.name;
-  const { name, items } = req.body;
+  const { name } = req.body;
   try {
-    if (name !== oldName) {
+    if (name && name !== oldName) {
       await pool.query(
-        'UPDATE categories SET name = $1, items = $2, updated_at = $3 WHERE name = $4',
-        [name, items || [], Date.now(), oldName]
-      );
-    } else {
-      await pool.query(
-        'UPDATE categories SET items = $1, updated_at = $2 WHERE name = $3',
-        [items || [], Date.now(), oldName]
+        'UPDATE categories SET name = $1, updated_at = $2 WHERE name = $3',
+        [name, Date.now(), oldName]
       );
     }
     res.json({ success: true });
@@ -294,7 +285,7 @@ app.delete('/api/categories/:name', async (req, res) => {
 // 4. PRODUCTS CRUD
 // ==========================================
 app.post('/api/products', async (req, res) => {
-  const { code, name, cat, subCat, brand, serial, purchaseDate, qty, status } = req.body;
+  const { code, name, cat, purchaseDate, qty, status } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -330,9 +321,9 @@ app.post('/api/products', async (req, res) => {
     
     for (const currentCode of codes) {
       const prodResult = await client.query(
-        `INSERT INTO products (code, name, cat, sub_cat, brand, serial, purchase_date, qty, status, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
-        [currentCode, name, cat, subCat || '', brand || '', serial || '', purchaseDate || null, 1, status || 'Available', Date.now()]
+        `INSERT INTO products (code, name, cat, purchase_date, qty, status, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [currentCode, name, cat, purchaseDate || null, 1, status || 'Available', Date.now()]
       );
       lastInsertedId = prodResult.rows[0].id;
       
@@ -356,13 +347,13 @@ app.post('/api/products', async (req, res) => {
 
 app.put('/api/products/:id', async (req, res) => {
   const { id } = req.params;
-  const { code, name, cat, subCat, brand, serial, purchaseDate, qty, status } = req.body;
+  const { code, name, cat, purchaseDate, qty, status } = req.body;
   try {
     await pool.query(
       `UPDATE products 
-       SET code = $1, name = $2, cat = $3, sub_cat = $4, brand = $5, serial = $6, purchase_date = $7, qty = $8, status = $9, updated_at = $10 
-       WHERE id = $11`,
-      [code, name, cat, subCat || '', brand || '', serial || '', purchaseDate || null, qty || 1, status, Date.now(), id]
+       SET code = $1, name = $2, cat = $3, purchase_date = $4, qty = $5, status = $6, updated_at = $7 
+       WHERE id = $8`,
+      [code, name, cat, purchaseDate || null, qty || 1, status, Date.now(), id]
     );
     res.json({ success: true });
   } catch (err) {
@@ -393,15 +384,15 @@ app.post('/api/accessories', async (req, res) => {
     const code = 'ACC' + String(nextId).padStart(3, '0');
     
     await client.query(
-      `INSERT INTO products (id, code, name, cat, sub_cat, brand, serial, purchase_date, qty, status, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [nextId, code, name, cat, itemType, brand || '', '', date || null, qty || 1, status || 'Available', Date.now()]
+      `INSERT INTO products (id, code, name, cat, purchase_date, qty, status, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [nextId, code, name, cat, date || null, qty || 1, status || 'Available', Date.now()]
     );
     
     await client.query(
       `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [code, name, 'Added', '—', date ? new Date(date) : new Date(), `Accessory item (${itemType}) added to inventory`, Date.now()]
+      [code, name, 'Added', '—', date ? new Date(date) : new Date(), `Accessory item (${itemType || 'Unknown'}) added to inventory`, Date.now()]
     );
     
     await client.query('COMMIT');

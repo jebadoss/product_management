@@ -68,7 +68,7 @@ function getFilteredProducts() {
     if (p.status === 'Damaged' || p.status === 'Replaced' || db.damages.some(d => d.productId === p.id)) return false;
 
     const query = tableState.productQuery;
-    const matchesQuery = !query || [p.code, p.name, p.cat, p.brand, p.subCat]
+    const matchesQuery = !query || [p.code, p.name, p.cat]
       .some(value => value && value.toLowerCase().includes(query));
     const matchesStatus = !tableState.productStatus || p.status === tableState.productStatus;
     const matchesCategory = !tableState.productCategory || p.cat === tableState.productCategory;
@@ -680,7 +680,6 @@ function renderCategories(page = tableState.categories) {
   tbody.innerHTML = pageItems.map((cat, i) => {
     const index = start + i;
     const catName = typeof cat === 'string' ? cat : cat.name;
-    const catItems = (cat && cat.items) ? cat.items : [];
     const catProducts = db.products.filter(p => p.cat === catName);
     const count = catProducts.length;
     const productNames = catProducts.map(p => p.name).join(', ');
@@ -726,12 +725,9 @@ function saveCategory() {
   const name = document.getElementById('cf-name').value.trim();
   if (!name) { showToast('Category name required.', 'error'); return; }
 
-  const existingCat = editingId.cat !== null ? db.categories.find(c => (typeof c === 'string' ? c : c.name) === editingId.cat) : null;
-  const items = existingCat ? (existingCat.items || []) : [];
-  
   const url = editingId.cat !== null ? `/api/categories/${encodeURIComponent(editingId.cat)}` : '/api/categories';
   const method = editingId.cat !== null ? 'PUT' : 'POST';
-  const body = { name, items };
+  const body = { name };
 
   fetch(url, {
     method,
@@ -832,100 +828,15 @@ function renderItems() {
 
   grid.innerHTML = categoriesToShow.map((cat, idx) => {
     const catName = typeof cat === 'string' ? cat : cat.name;
-    const catItems = (cat && cat.items && Array.isArray(cat.items)) ? cat.items : [];
     const catColor = COLORS[idx % COLORS.length];
-    const isComputer = catName.toLowerCase() === 'computer';
-    const isAccessories = catName.toLowerCase() === 'accessories';
-    const subCategories = (cat && cat.subCategories) ? cat.subCategories : [];
 
     // Get products in this category
     const catProducts = db.products.filter(p => p.cat === catName);
 
-    // For Computer category, group by item type (subCat)
-    let itemsHtml = '';
-    if (isComputer && catItems.length > 0) {
-      itemsHtml = catItems.map(item => {
-        const itemProducts = db.products.filter(p => p.cat === catName && p.subCat && p.subCat.toLowerCase() === item.toLowerCase());
-        const available = itemProducts.filter(p => p.status === 'Available').length;
-        const total = itemProducts.reduce((s, p) => s + (p.qty || 0), 0);
-        return `
-          <div class="item-card" onclick="viewItemProducts('${catName}', '${item}')">
-            <div class="item-icon" style="background:${catColor}20; color:${catColor};">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            </div>
-            <div class="item-info">
-              <div class="item-name">${item}</div>
-              <div class="item-meta">${total} units · ${available} available</div>
-            </div>
-            <div class="item-count" style="background:${catColor}20; color:${catColor};">${itemProducts.length}</div>
-          </div>`;
-      }).join('');
-    } else if (isAccessories) {
-      // Show accessory sub-items and also sub-categories (Laptop, AC, Printer, Chair)
-      const accessoryItemsList = catItems.map(item => {
-        const itemProducts = db.products.filter(p =>
-          (p.cat === 'Accessories' && p.subCat && p.subCat.toLowerCase() === item.toLowerCase()) ||
-          (p.cat === item)
-        );
-        const available = itemProducts.filter(p => p.status === 'Available').length;
-        const total = itemProducts.reduce((s, p) => s + (p.qty || 0), 0);
-        return `
-          <div class="item-card" onclick="viewItemProducts('Accessories', '${item}')">
-            <div class="item-icon" style="background:${catColor}20; color:${catColor};">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-            </div>
-            <div class="item-info">
-              <div class="item-name">${item}</div>
-              <div class="item-meta">${total} units · ${available} available</div>
-            </div>
-            <div class="item-count" style="background:${catColor}20; color:${catColor};">${itemProducts.length}</div>
-          </div>`;
-      });
+    const available = catProducts.filter(p => p.status === 'Available').length;
+    const itemsHtml = `<div style="color:var(--text-secondary); font-size:13px; padding:8px 0;">No sub-items configured. <strong>${catProducts.length}</strong> product(s) in this category. ${available} available.</div>`;
 
-      // Show sub-categories (Laptop, AC, Printer, Chair)
-      const subCatCards = subCategories.map(sc => {
-        const scProducts = db.products.filter(p => p.cat === sc);
-        const available = scProducts.filter(p => p.status === 'Available').length;
-        const total = scProducts.reduce((s, p) => s + (p.qty || 0), 0);
-        return `
-          <div class="item-card" onclick="navigate('products'); filterProductsCategory('${sc}'); document.getElementById('cat-filter').value='${sc}';">
-            <div class="item-icon" style="background:#8B5CF620; color:#8B5CF6;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            </div>
-            <div class="item-info">
-              <div class="item-name">${sc}</div>
-              <div class="item-meta" style="color:#8B5CF6; font-weight:600; font-size:10px;">DEVICE CATEGORY</div>
-              <div class="item-meta">${total} units · ${available} available</div>
-            </div>
-            <div class="item-count" style="background:#8B5CF620; color:#8B5CF6;">${scProducts.length}</div>
-          </div>`;
-      });
-
-      itemsHtml = [...accessoryItemsList, ...subCatCards].join('');
-    } else if (catItems.length > 0) {
-      itemsHtml = catItems.map(item => {
-        const itemProducts = db.products.filter(p => p.cat === catName && p.subCat && p.subCat.toLowerCase() === item.toLowerCase());
-        const available = itemProducts.filter(p => p.status === 'Available').length;
-        const total = itemProducts.reduce((s, p) => s + (p.qty || 0), 0);
-        return `
-          <div class="item-card" onclick="viewItemProducts('${catName}', '${item}')">
-            <div class="item-icon" style="background:${catColor}20; color:${catColor};">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-            </div>
-            <div class="item-info">
-              <div class="item-name">${item}</div>
-              <div class="item-meta">${total} units · ${available} available</div>
-            </div>
-            <div class="item-count" style="background:${catColor}20; color:${catColor};">${itemProducts.length}</div>
-          </div>`;
-      }).join('');
-    } else {
-      // No sub-items, just show the category products count
-      const available = catProducts.filter(p => p.status === 'Available').length;
-      itemsHtml = `<div style="color:var(--text-secondary); font-size:13px; padding:8px;">No sub-items configured. <strong>${catProducts.length}</strong> product(s) in this category. ${available} available.</div>`;
-    }
-
-    const bundleBadge = isComputer ? `<span style="background:var(--accent); color:white; font-size:10px; font-weight:700; padding:2px 8px; border-radius:100px; margin-left:8px;">BUNDLE</span>` : '';
+    const isAccessories = catName.toLowerCase() === 'accessories';
     const accBadge = isAccessories ? `<span style="background:#8B5CF6; color:white; font-size:10px; font-weight:700; padding:2px 8px; border-radius:100px; margin-left:8px;">ACCESSORIES</span>` : '';
 
     return `
@@ -934,16 +845,16 @@ function renderItems() {
           <div style="display:flex; align-items:center; gap:10px;">
             <span style="width:10px; height:10px; border-radius:50%; background:${catColor}; display:inline-block;"></span>
             <span style="font-size:15px; font-weight:700; color:var(--text-primary);">${catName}</span>
-            ${bundleBadge}${accBadge}
+            ${accBadge}
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:12px; color:var(--text-secondary);">${catProducts.length} products</span>
             ${isAccessories ? `<button class="btn btn-primary" style="font-size:11px; padding:4px 10px;" onclick="openAddAccessoryModal()">+ Add Item</button>` : ''}
-            ${isComputer ? `<button class="btn btn-secondary" style="font-size:11px; padding:4px 10px;" onclick="navigate('products'); filterProductsCategory('Computer'); document.getElementById('cat-filter').value='Computer';">View All</button>` : ''}
+            <button class="btn btn-secondary" style="font-size:11px; padding:4px 10px;" onclick="navigate('products'); filterProductsCategory('${catName}'); document.getElementById('cat-filter').value='${catName}';">View All</button>
           </div>
         </div>
         <div class="items-list">
-          ${itemsHtml || '<div style="color:var(--text-secondary); font-size:13px; padding:8px 0;">No items configured.</div>'}
+          ${itemsHtml}
         </div>
       </div>`;
   }).join('');
@@ -984,18 +895,15 @@ function onAccessoryCategoryChange() {
 
 function saveAccessoryItem() {
   const cat = document.getElementById('acc-cat').value;
-  const itemType = document.getElementById('acc-item-type').value;
   const name = document.getElementById('acc-name').value.trim();
-  const brand = document.getElementById('acc-brand').value.trim();
   const qty = parseInt(document.getElementById('acc-qty').value) || 1;
   const purchaseDate = document.getElementById('acc-date').value;
   const status = document.getElementById('acc-status').value;
 
   if (!cat) { showToast('Please select a category.', 'error'); return; }
-  if (!itemType) { showToast('Please select an item type.', 'error'); return; }
   if (!name) { showToast('Item name is required.', 'error'); return; }
 
-  const body = { name, cat, itemType, brand, qty, date: purchaseDate || today(), status };
+  const body = { name, cat, qty, date: purchaseDate || today(), status };
 
   fetch('/api/accessories', {
     method: 'POST',
@@ -1005,7 +913,7 @@ function saveAccessoryItem() {
   .then(res => {
     if (!res.ok) throw new Error('API save accessory error');
     closeModal('accessory-modal');
-    showToast(`${itemType} "${name}" added successfully!`, 'success');
+    showToast(`Accessory "${name}" added successfully!`, 'success');
     window.location.reload();
   })
   .catch(err => {
@@ -1079,7 +987,7 @@ function viewProduct(id) {
           </div>
           <div>
             <div style="font-size:20px;font-weight:700;color:var(--text);">${p.name}</div>
-            <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">${p.cat} · ${p.brand || '—'}</div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">${p.cat}</div>
           </div>
         </div>
         
@@ -1088,9 +996,6 @@ function viewProduct(id) {
           <div class="detail-grid" style="display: grid; grid-template-columns: 1fr; gap: 12px;">
             <div class="detail-item"><div class="di-label">Product Code</div><div class="di-value">${p.code}</div></div>
             <div class="detail-item"><div class="di-label">Category</div><div class="di-value">${p.cat}</div></div>
-            <div class="detail-item"><div class="di-label">Sub-Category</div><div class="di-value">${p.subCat || '—'}</div></div>
-            <div class="detail-item"><div class="di-label">Brand</div><div class="di-value">${p.brand || '—'}</div></div>
-            <div class="detail-item"><div class="di-label">Serial Number</div><div class="di-value"><code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px;">${p.serial || '—'}</code></div></div>
             <div class="detail-item"><div class="di-label">Purchase Date</div><div class="di-value">${formatDate(p.purchaseDate)}</div></div>
             <div class="detail-item"><div class="di-label">Quantity</div><div class="di-value">${p.qty}</div></div>
             <div class="detail-item"><div class="di-label">Status</div><div class="di-value">${statusBadge(p.status)}</div></div>
@@ -1241,10 +1146,6 @@ function editProduct(id) {
   
   onProductCategoryChange();
 
-  const pfBrand = document.getElementById('pf-brand');
-  if (pfBrand) {
-    pfBrand.value = p.brand || '';
-  }
   document.getElementById('pf-date').value = p.purchaseDate || '';
   const pfQty = document.getElementById('pf-qty');
   if (pfQty) {
@@ -1278,10 +1179,6 @@ function openProductModal() {
   document.getElementById('pf-name').value = '';
   document.getElementById('pf-cat').value = '';
   
-  const pfBrand = document.getElementById('pf-brand');
-  if (pfBrand) {
-    pfBrand.value = '';
-  }
   document.getElementById('pf-date').value = '';
   const pfQty = document.getElementById('pf-qty');
   if (pfQty) {
@@ -1310,7 +1207,6 @@ function saveProduct() {
     existing = db.products.find(x => x.id === editingId.prod);
   }
 
-  const pfBrand = document.getElementById('pf-brand');
   const pfQty = document.getElementById('pf-qty');
   const pfStatus = document.getElementById('pf-status');
 
@@ -1318,9 +1214,6 @@ function saveProduct() {
     code,
     name,
     cat,
-    subCat: existing ? (existing.subCat || '') : '',
-    brand: pfBrand ? pfBrand.value.trim() : (existing ? (existing.brand || '') : ''),
-    serial: existing ? (existing.serial || '') : '',
     purchaseDate: document.getElementById('pf-date').value,
     qty: pfQty ? (parseInt(pfQty.value) || 1) : (existing ? (existing.qty || 1) : 1),
     status: pfStatus ? (pfStatus.value || 'Available') : (existing ? (existing.status || 'Available') : 'Available')
@@ -1449,13 +1342,10 @@ function onAssignCategoryChange() {
   // Get unique subCat values AND unique product names under this category case-insensitively
   const catObj = db.categories.find(c => (typeof c === 'string' ? c : c.name).toLowerCase() === category.toLowerCase());
   const items = (catObj && catObj.items && Array.isArray(catObj.items)) ? catObj.items : [];
-  const prodSubCats = db.products
-    .filter(p => p.cat && p.cat.toLowerCase() === category.toLowerCase() && p.subCat)
-    .map(p => p.subCat);
   const prodNames = db.products
     .filter(p => p.cat && p.cat.toLowerCase() === category.toLowerCase() && p.name)
     .map(p => p.name);
-  const combinedItems = Array.from(new Set([...items, ...prodSubCats, ...prodNames])).filter(Boolean);
+  const combinedItems = Array.from(new Set([...items, ...prodNames])).filter(Boolean);
 
   // Always show product type (sub-category) selector when category is selected
   if (typeGroup) typeGroup.style.display = 'block';
@@ -1498,9 +1388,7 @@ function onAssignTypeChange() {
   // Filter by selected Type if provided
   if (type) {
     products = products.filter(p => {
-      const matchesSubCat = p.subCat && p.subCat.toLowerCase() === type.toLowerCase();
-      const matchesName = p.name && p.name.toLowerCase().includes(type.toLowerCase());
-      return matchesSubCat || matchesName;
+      return p.name && p.name.toLowerCase().includes(type.toLowerCase());
     });
   }
 
