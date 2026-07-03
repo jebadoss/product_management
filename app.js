@@ -1,14 +1,34 @@
 // Override fetch to route API requests to the backend server when frontend is hosted separately
 const originalFetch = window.fetch;
-window.fetch = function (url, options) {
+window.fetch = function (url, options = {}) {
   if (typeof url === 'string' && url.startsWith('/api/')) {
     const API_BASE = window.location.origin.includes('localhost:3000') || window.location.origin.includes('127.0.0.1:3000')
       ? ''
       : 'http://localhost:3000';
     url = API_BASE + url;
+
+    // Inject Auth token
+    const token = localStorage.getItem('pms_auth_token');
+    if (token) {
+      options.headers = options.headers || {};
+      options.headers['Authorization'] = `Bearer ${token}`;
+    }
   }
-  return originalFetch(url, options);
+  return originalFetch(url, options).then(res => {
+    if (res.status === 401 && typeof url === 'string' && url.startsWith('/api/') && !url.includes('/api/login')) {
+      localStorage.removeItem('pms_auth_token');
+      localStorage.removeItem('pms_auth_role');
+      window.location.replace('login.html');
+    }
+    return res;
+  });
 };
+
+function logout() {
+  localStorage.removeItem('pms_auth_token');
+  localStorage.removeItem('pms_auth_role');
+  window.location.replace('login.html');
+}
 
 // ===================== DATA STORE =====================
 let db = {

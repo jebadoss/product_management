@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - Roriri</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #080B11;
+      --bg-card: rgba(13, 17, 28, 0.45);
+      --accent-purple: #6C3EFF;
+      --accent-cyan: #00D4FF;
+      --text-white: #FFFFFF;
+      --text-secondary: #8E9BAE;
+      --border-color: rgba(255, 255, 255, 0.06);
+      --border-glow: rgba(108, 62, 255, 0.4);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Outfit', 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-white);
+      min-height: 100vh;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Outer Wrapper for transitions */
+    .app-container {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+      transition: opacity 0.5s ease;
+    }
+
+    .app-container.fade-out {
+      opacity: 0;
+    }
+
+    /* LEFT PANEL - Showcase (60%) */
+    .showcase-panel {
+      flex: 6;
+      background: radial-gradient(circle at 30% 20%, #151828 0%, var(--bg-dark) 70%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 60px;
+      position: relative;
+      overflow: hidden;
+      border-right: 1px solid var(--border-color);
+    }
+
+    /* Floating glowing blur orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(130px);
+      z-index: 1;
+      opacity: 0.25;
+      animation: floatOrb 22s infinite alternate ease-in-out;
+    }
+
+    .orb-purple {
+      width: 450px;
+      height: 450px;
+      background: var(--accent-purple);
+      top: -100px;
+      left: -100px;
+      animation-delay: 0s;
+    }
+
+    .orb-cyan {
+      width: 500px;
+      height: 500px;
+      background: var(--accent-cyan);
+      bottom: -150px;
+      right: -50px;
+      animation-delay: 6s;
+    }
+
+    @keyframes floatOrb {
+      0% {
+        transform: translate(0, 0) scale(1);
+      }
+
+      50% {
+        transform: translate(50px, -50px) scale(1.15);
+      }
+
+      100% {
+        transform: translate(-30px, 30px) scale(0.9);
+      }
+    }
+
+    .showcase-header {
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(108, 62, 255, 0.4);
+    }
+
+    .brand-logo-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: var(--text-white);
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(120deg, #FFFFFF, #9EADF2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .showcase-content {
+      z-index: 10;
+      max-width: 550px;
+      margin-top: -40px;
+    }
+
+    .showcase-title {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -1.5px;
+      margin-bottom: 20px;
+      background: linear-gradient(to right, #FFFFFF, #B9C6FF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .showcase-subtitle {
+      font-size: 16px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+
+    .quote-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 20px;
+      border-radius: 14px;
+      backdrop-filter: blur(10px);
+      position: relative;
+    }
+
+    .quote-text {
+      font-size: 15px;
+      font-style: italic;
+      color: #D1D6E6;
+      margin-bottom: 8px;
+    }
+
+    .quote-author {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .showcase-footer {
+      z-index: 10;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* RIGHT PANEL - Login Card (40%) */
+    .login-panel {
+      flex: 4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      background: #090C12;
+      z-index: 10;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 380px;
+      animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .login-header {
+      margin-bottom: 36px;
+    }
+
+    .login-header h2 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      margin-bottom: 8px;
+    }
+
+    .login-header p {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* Floating Labels Form Styling */
+    .form-group {
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 18px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      outline: none;
+      color: var(--text-white);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .form-input:focus {
+      border-color: var(--accent-purple);
+      background: rgba(108, 62, 255, 0.03);
+      box-shadow: 0 0 16px var(--border-glow);
+    }
+
+    .form-label {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      color: var(--text-secondary);
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Input actions: label floats on focus or input containing content */
+    .form-input:focus~.form-label,
+    .form-input:not(:placeholder-shown)~.form-label {
+      top: 0;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      background: #090C12;
+      padding: 2px 8px;
+      border-radius: 4px;
+      transform: translateY(-50%) scale(0.95);
+      left: 12px;
+    }
+
+    /* Password Input Helper */
+    .password-wrapper {
+      position: relative;
+    }
+
+    .password-toggle-btn {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s;
+    }
+
+    .password-toggle-btn:hover {
+      color: var(--text-white);
+    }
+
+    .password-toggle-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Remember Switch & Forgot Password Row */
+    .utilities-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      font-size: 13px;
+    }
+
+    /* Toggle Switch design */
+    .switch-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .switch-container input {
+      display: none;
+    }
+
+    .switch-slider {
+      width: 38px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      position: relative;
+      transition: background 0.3s;
+      border: 1px solid var(--border-color);
+    }
+
+    .switch-slider::before {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      top: 2px;
+      left: 2px;
+      transition: transform 0.3s, background-color 0.3s;
+    }
+
+    .switch-container input:checked+.switch-slider {
+      background: var(--accent-purple);
+    }
+
+    .switch-container input:checked+.switch-slider::before {
+      transform: translateX(18px);
+      background-color: var(--text-white);
+    }
+
+    .forgot-link {
+      color: var(--accent-cyan);
+      text-decoration: none;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+
+    .forgot-link:hover {
+      opacity: 0.8;
+    }
+
+    /* Button Loading and Success Transitions */
+    .btn-login {
+      width: 100%;
+      padding: 18px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+      color: var(--text-white);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(108, 62, 255, 0.3);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(108, 62, 255, 0.5);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    /* Spinner */
+    .btn-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255, 255, 255, 0.3);
+      border-top-color: var(--text-white);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Success Icon */
+    .btn-success-icon {
+      display: none;
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Shake animation for validation failure */
+    .shake-animation {
+      animation: shake 0.4s ease-in-out;
+    }
+
+    @keyframes shake {
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      20%,
+      60% {
+        transform: translateX(-8px);
+      }
+
+      40%,
+      80% {
+        transform: translateX(8px);
+      }
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      top: 30px;
+      right: 30px;
+      z-index: 100;
+    }
+
+    .toast {
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transform: translateX(120%);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .toast.success {
+      background: rgba(16, 185, 129, 0.9);
+    }
+
+    .toast.show {
+      transform: translateX(0);
+    }
+
+    .toast svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    /* Responsive styling */
+    @media (max-width: 900px) {
+      .showcase-panel {
+        display: none;
+      }
+
+      .login-panel {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Toast Notification -->
+  <div class="toast-container">
+    <div id="login-toast" class="toast">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="toast-icon">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      <span id="toast-message">Authentication failed</span>
+    </div>
+  </div>
+
+  <div class="app-container" id="app-wrapper">
+    <!-- LEFT PANEL - Brand showcase -->
+    <div class="showcase-panel">
+      <!-- Gradient Orbs -->
+      <div class="orb orb-purple"></div>
+      <div class="orb orb-cyan"></div>
+
+      <div class="showcase-header">
+        <div class="brand-logo-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zm0 12H4V9h16v10zM4 5h16v2H4z" />
+          </svg>
+        </div>
+        <div class="brand-title">Roriri IT Park</div>
+      </div>
+
+      <div class="showcase-content">
+        <h1 class="showcase-title">A Secure Gateway to Your Operations.</h1>
+        <p class="showcase-subtitle">Manage products, assignments, and repairs through a clean and responsive control
+          system designed for professionals.</p>
+
+        <div class="quote-card">
+          <p class="quote-text">"Welcome back, Captain."</p>
+          <p class="quote-author">Roriri System Administration</p>
+        </div>
+      </div>
+
+      <div class="showcase-footer">
+        &copy; 2026 Roriri. All rights reserved.
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL - Form Panel -->
+    <div class="login-panel">
+      <div class="login-box" id="login-card">
+        <div class="login-header">
+          <h2>Sign In</h2>
+          <p>Provide administrative credentials to proceed</p>
+        </div>
+
+        <form id="login-form" onsubmit="handleLogin(event)">
+          <!-- Username input -->
+          <div class="form-group">
+            <input type="text" id="username" class="form-input" placeholder=" " required autocomplete="username">
+            <label class="form-label" for="username">Username</label>
+          </div>
+
+          <!-- Password input -->
+          <div class="form-group password-wrapper">
+            <input type="password" id="password" class="form-input" placeholder=" " required
+              autocomplete="current-password">
+            <label class="form-label" for="password">Password</label>
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility()"
+              aria-label="Toggle Password Visibility">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="password-toggle-icon">
+                <!-- Eye closed by default -->
+                <path
+                  d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Switch & Link -->
+          <div class="utilities-row">
+            <label class="switch-container">
+              <input type="checkbox" id="remember-me">
+              <span class="switch-slider"></span>
+              Remember Me
+            </label>
+            <a href="#" class="forgot-link" onclick="forgotAlert(event)">Forgot Password?</a>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="btn-login" id="btn-submit">
+            <span class="btn-spinner" id="btn-spinner"></span>
+            <svg class="btn-success-icon" id="btn-success-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="3">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span id="btn-text">Sign In</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Redirect if already logged in
+    if (localStorage.getItem('pms_auth_token') && localStorage.getItem('pms_auth_role') === 'admin') {
+      window.location.replace('index.html');
+    }
+
+    function togglePasswordVisibility() {
+      const passwordInput = document.getElementById('password');
+      const toggleIcon = document.getElementById('password-toggle-icon');
+
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.innerHTML = `
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        `;
+      } else {
+        passwordInput.type = 'password';
+        toggleIcon.innerHTML = `
+          <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        `;
+      }
+    }
+
+    function forgotAlert(event) {
+      event.preventDefault();
+      showToast('Default Administrator credentials are admin / admin', 'info');
+    }
+
+    function showToast(message, type = 'error') {
+      const toast = document.getElementById('login-toast');
+      const text = document.getElementById('toast-message');
+      const icon = document.getElementById('toast-icon');
+
+      text.textContent = message;
+
+      if (type === 'success') {
+        toast.style.background = 'rgba(16, 185, 129, 0.9)';
+        toast.className = 'toast success show';
+        icon.innerHTML = `<path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />`;
+      } else if (type === 'info') {
+        toast.style.background = 'rgba(59, 130, 246, 0.9)';
+        toast.className = 'toast show';
+        icon.innerHTML = `<circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />`;
+      } else {
+        toast.style.background = 'rgba(239, 68, 68, 0.9)';
+        toast.className = 'toast show';
+        icon.innerHTML = `<circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />`;
+      }
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3500);
+    }
+
+    function handleLogin(event) {
+      event.preventDefault();
+
+      const usernameInput = document.getElementById('username');
+      const passwordInput = document.getElementById('password');
+      const loginCard = document.getElementById('login-card');
+      const submitBtn = document.getElementById('btn-submit');
+      const spinner = document.getElementById('btn-spinner');
+      const successIcon = document.getElementById('btn-success-icon');
+      const btnText = document.getElementById('btn-text');
+
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      // Show loading spinner
+      submitBtn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.textContent = 'Verifying...';
+
+      const API_BASE = window.location.origin.includes('localhost:3000') || window.location.origin.includes('127.0.0.1:3000')
+        ? ''
+        : 'http://localhost:3000';
+
+      fetch(API_BASE + '/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+        .then(res => {
+          if (!res.ok) {
+            return res.json().then(data => { throw new Error(data.error || 'Authentication failed') });
+          }
+          return res.json();
+        })
+        .then(data => {
+          // Success micro-interaction
+          spinner.style.display = 'none';
+          successIcon.style.display = 'block';
+          btnText.textContent = 'Success';
+          submitBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+          submitBtn.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)';
+
+          showToast('Login successful! Welcome onboard.', 'success');
+          localStorage.setItem('pms_auth_token', data.token);
+          localStorage.setItem('pms_auth_role', data.role);
+
+          // Transition and redirect
+          setTimeout(() => {
+            document.getElementById('app-wrapper').classList.add('fade-out');
+            setTimeout(() => {
+              window.location.replace('index.html');
+            }, 500);
+          }, 1200);
+        })
+        .catch(err => {
+          // Validation failed shake feedback
+          loginCard.classList.add('shake-animation');
+          setTimeout(() => {
+            loginCard.classList.remove('shake-animation');
+          }, 400);
+
+          showToast(err.message || 'Invalid username or password');
+          submitBtn.disabled = false;
+          spinner.style.display = 'none';
+          btnText.textContent = 'Sign In';
+        });
+    }
+  </script>
+</body>
+
+</html>

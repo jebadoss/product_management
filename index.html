@@ -5,6 +5,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Product Management System</title>
+  <script>
+    if (!localStorage.getItem('pms_auth_token') || localStorage.getItem('pms_auth_role') !== 'admin') {
+      localStorage.removeItem('pms_auth_token');
+      localStorage.removeItem('pms_auth_role');
+      window.location.replace('login.html');
+    }
+  </script>
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -18,7 +25,7 @@
           <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zm0 12H4V9h16v10zM4 5h16v2H4z" />
         </svg>
       </div>
-      <h2>PMS Pro+</h2>
+      <h2>Roriri</h2>
       <p>Product Management</p>
     </div>
 
@@ -147,6 +154,12 @@
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
           Export PDF
+        </button>
+        <button class="btn btn-secondary" onclick="logout()" style="display: flex; align-items: center; gap: 6px; background-color: #fee2e2; color: #dc2626; border-color: #fca5a5;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+          Logout
         </button>
       </div>
     </div>

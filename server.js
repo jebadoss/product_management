@@ -16,7 +16,32 @@ app.use(express.static(path.join(__dirname)));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
+// Authentication configuration
+const AUTH_TOKEN = 'pms-secret-auth-token-value-9988';
 
+// Endpoint for admin login
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === 'admin' && (password === 'admin' || password === 'password')) {
+    res.json({ success: true, token: AUTH_TOKEN, role: 'admin' });
+  } else {
+    res.status(401).json({ error: 'Invalid username or password' });
+  }
+});
+
+// Middleware to authenticate /api requests
+const authenticateAPI = (req, res, next) => {
+  if (req.path === '/api/login') {
+    return next();
+  }
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader === `Bearer ${AUTH_TOKEN}`) {
+    return next();
+  }
+  res.status(401).json({ error: 'Unauthorized. Please login.' });
+};
+
+app.use('/api', authenticateAPI);
 // ==========================================
 // 1. GET FULL DATABASE STATE (GET /api/db)
 // ==========================================
