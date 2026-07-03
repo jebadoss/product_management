@@ -374,25 +374,26 @@ function renderEmployees(page = tableState.employees) {
     `<tr>
       <td>
         <div style="display:flex;align-items:center;gap:8px;">
-          <div class="avatar" style="background:${COLORS[e.id % COLORS.length]}">${e.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
-          ${e.name}
+          <div class="avatar" style="background:${COLORS[Array.from(e.code || '').reduce((acc, char) => acc + char.charCodeAt(0), 0) % COLORS.length]}">${e.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
+          <a href="#" onclick="viewEmployee('${e.id}'); return false;" style="font-weight: 500; color: var(--primary); text-decoration: none;">
+            ${e.name}
+          </a>
         </div>
       </td>
       <td>${e.dept}</td>
       <td>${e.role}</td>
-      <td><code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11px;">${e.code}</code></td>
       <td>${e.email}</td>
       <td><span class="badge badge-${e.status.toLowerCase()}">${e.status}</span></td>
       <td>${e.blood}</td>
       <td>
         <div style="display:flex;gap:4px;">
-          <button class="btn-icon view" title="View" onclick="viewEmployee(${e.id})">
+          <button class="btn-icon view" title="View" onclick="viewEmployee('${e.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
-          <button class="btn-icon edit" title="Edit" onclick="editEmployee(${e.id})">
+          <button class="btn-icon edit" title="Edit" onclick="editEmployee('${e.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="btn-icon del" title="Delete" onclick="deleteEmployee(${e.id})">
+          <button class="btn-icon del" title="Delete" onclick="deleteEmployee('${e.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
           </button>
         </div>
@@ -422,7 +423,7 @@ function viewEmployee(id) {
       <!-- Left side: Employee details -->
       <div class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
         <div style="display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--border);padding-bottom:16px;">
-          <div class="avatar" style="width:64px;height:64px;font-size:22px;font-weight:600;background:${COLORS[e.id % COLORS.length]};display:flex;align-items:center;justify-content:center;color:#fff;border-radius:50%;">${e.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
+          <div class="avatar" style="width:64px;height:64px;font-size:22px;font-weight:600;background:${COLORS[Array.from(e.code || '').reduce((acc, char) => acc + char.charCodeAt(0), 0) % COLORS.length]};display:flex;align-items:center;justify-content:center;color:#fff;border-radius:50%;">${e.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
           <div>
             <div style="font-size:20px;font-weight:700;color:var(--text);">${e.name}</div>
             <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">${e.role || '—'} · ${e.dept || '—'}</div>
@@ -507,6 +508,7 @@ function viewEmployee(id) {
 function openEmployeeModal() {
   editingId.emp = null;
   document.getElementById('emp-modal-title').textContent = 'Add Employee';
+  document.getElementById('ef-code-group').style.display = 'none';
   document.getElementById('ef-code').value = '';
   document.getElementById('ef-name').value = '';
   document.getElementById('ef-dept').value = '';
@@ -525,7 +527,10 @@ function editEmployee(id) {
   if (!e) return;
   editingId.emp = id;
   document.getElementById('emp-modal-title').textContent = 'Edit Employee';
+  document.getElementById('ef-code-group').style.display = 'none';
   document.getElementById('ef-code').value = e.code;
+  document.getElementById('ef-code').readOnly = true;
+  document.getElementById('ef-code-clear-btn').style.display = 'none';
   document.getElementById('ef-name').value = e.name;
   document.getElementById('ef-dept').value = e.dept;
   document.getElementById('ef-role').value = e.role;
@@ -558,7 +563,8 @@ function saveEmployee() {
   const email = document.getElementById('ef-email').value.trim();
   const status = document.getElementById('ef-status').value;
 
-  if (!code || !name) { showToast('Code and Name are required.', 'error'); return; }
+  if (editingId.emp && !code) { showToast('Code is required.', 'error'); return; }
+  if (!name) { showToast('Name is required.', 'error'); return; }
 
   const charRegex = /^[a-zA-Z\s]+$/;
   if (!charRegex.test(name)) {
@@ -593,6 +599,12 @@ function saveEmployee() {
     return;
   }
 
+  const joinDate = document.getElementById('ef-join').value;
+  if (!joinDate) {
+    showToast('Joining Date is required.', 'error');
+    return;
+  }
+
   // Resignation Date is auto-set to today if status is Inactive and it wasn't set, or cleared if Active
   let resignDate = '';
   if (status === 'Inactive') {
@@ -608,7 +620,7 @@ function saveEmployee() {
     phone,
     blood: document.getElementById('ef-blood').value.trim(),
     status,
-    joinDate: document.getElementById('ef-join').value,
+    joinDate,
     resignDate,
     address: document.getElementById('ef-addr').value.trim()
   };
@@ -1284,8 +1296,8 @@ function suggestEmployees(query) {
   }
 
   container.innerHTML = filtered.map(e => `
-    <div class="autocomplete-suggestion" onclick="selectEmployeeSuggestion(${e.id}, '${e.name.replace(/'/g, "\\'")}', '${e.code}')">
-      <strong>${e.name}</strong> (${e.code}) - <span style="font-size:11px;color:var(--text-secondary);">${e.dept}</span>
+    <div class="autocomplete-suggestion" onclick="selectEmployeeSuggestion('${e.id}', '${e.name.replace(/'/g, "\\'")}', '${e.code}')">
+      <strong>${e.name} - ${e.code}</strong> - <span style="font-size:11px;color:var(--text-secondary);">${e.dept}</span>
     </div>
   `).join('');
   container.style.display = 'block';
@@ -1308,7 +1320,7 @@ function selectEmployeeSuggestion(id, name, code) {
   const container = document.getElementById('af-emp-suggestions');
 
   if (searchInput && hiddenInput) {
-    searchInput.value = `${name} (${code})`;
+    searchInput.value = `${name} - ${code}`;
     hiddenInput.value = id;
   }
   if (container) {
@@ -1398,7 +1410,7 @@ function onAssignTypeChange() {
   }
 
   let html = '<option value="">Select Product</option>';
-  html += products.map(p => `<option value="${p.id}">${p.name} (${p.code})</option>`).join('');
+  html += products.map(p => `<option value="${p.id}">${p.name} - ${p.code}</option>`).join('');
   prodSelect.innerHTML = html;
   prodSelect.value = ''; // Always keep placeholder selected
 }
@@ -1596,7 +1608,7 @@ function editAssignment(id) {
   // Populate Employee
   const emp = db.employees.find(e => e.id === a.employeeId);
   if (emp) {
-    document.getElementById('af-emp-search').value = `${emp.name} (${emp.code})`;
+    document.getElementById('af-emp-search').value = `${emp.name} - ${emp.code}`;
     document.getElementById('af-emp').value = emp.id;
   }
 
@@ -1658,7 +1670,7 @@ function editAssignment(id) {
 }
 
 function saveAssignment() {
-  const empId = parseInt(document.getElementById('af-emp').value);
+  const empId = document.getElementById('af-emp').value;
   if (!empId) { showToast('Please search and select an employee from suggestions.', 'error'); return; }
   const emp = db.employees.find(e => e.id === empId);
   if (!emp) { showToast('Selected employee not found.', 'error'); return; }
@@ -1874,8 +1886,8 @@ function suggestDamageProducts(query) {
   }
 
   container.innerHTML = filtered.map(p => `
-    <div class="autocomplete-suggestion" onclick="selectDamageProduct(${p.id}, '${p.name.replace(/'/g, "\\'")} (${p.code})')">
-      ${p.name} <strong>(${p.code})</strong>
+    <div class="autocomplete-suggestion" onclick="selectDamageProduct(${p.id}, '${p.name.replace(/'/g, "\\'")} - ${p.code}')">
+      ${p.name} <strong>- ${p.code}</strong>
     </div>
   `).join('');
   container.style.display = 'flex';
@@ -2078,8 +2090,8 @@ function suggestRepairProducts(query) {
   }
 
   container.innerHTML = filtered.map(p => `
-    <div class="autocomplete-suggestion" onclick="selectRepairProduct(${p.id}, '${p.name.replace(/'/g, "\\'")} (${p.code})')">
-      ${p.name} <strong>(${p.code})</strong>
+    <div class="autocomplete-suggestion" onclick="selectRepairProduct(${p.id}, '${p.name.replace(/'/g, "\\'")} - ${p.code}')">
+      ${p.name} <strong>- ${p.code}</strong>
     </div>
   `).join('');
   container.style.display = 'flex';

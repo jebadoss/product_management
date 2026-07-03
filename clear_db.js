@@ -20,6 +20,7 @@ async function clearDb() {
     await client.query(
       'TRUNCATE TABLE assignment_products, assignments, damages, repairs, products, employees, categories, history RESTART IDENTITY CASCADE'
     );
+    await client.query('ALTER SEQUENCE IF EXISTS employees_code_seq RESTART WITH 1');
     console.log('All dummy data cleared and database tables are now empty!');
   } catch (err) {
     console.error('Error clearing database:', err.message);

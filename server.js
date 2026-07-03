@@ -28,7 +28,7 @@ app.get('/api/db', async (req, res) => {
     const assignments = await pool.query(`
       SELECT a.*, e.name AS employee_name, e.dept
       FROM assignments a
-      LEFT JOIN employees e ON a.employee_id = e.id
+      LEFT JOIN employees e ON a.employee_id = e.code
     `);
     const damages = await pool.query(`
       SELECT d.*, p.code AS product_code, p.name AS product_name
@@ -96,7 +96,7 @@ app.get('/api/db', async (req, res) => {
     }));
 
     const employeesList = employees.rows.map(e => ({
-      id: e.id,
+      id: e.code,
       code: e.code,
       name: e.name,
       dept: e.dept || '',
@@ -170,13 +170,21 @@ app.get('/api/db', async (req, res) => {
 // 2. EMPLOYEES CRUD
 // ==========================================
 app.post('/api/employees', async (req, res) => {
-  const { code, name, dept, role, email, phone, blood, status, joinDate, resignDate, address } = req.body;
+  const { name, dept, role, email, phone, blood, status, joinDate, resignDate, address } = req.body;
+  if (!name || !joinDate) {
+    return res.status(400).json({ error: 'Name and Joining Date are required.' });
+  }
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
+    await client.query('BEGIN');
+    const seqRes = await client.query("SELECT nextval('employees_code_seq')");
+    const nextCode = String(seqRes.rows[0].nextval);
+
+    const result = await client.query(
       `INSERT INTO employees (code, name, dept, role, email, phone, blood, status, join_date, resign_date, address, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING code`,
       [
-        code, 
+        nextCode, 
         name, 
         dept || null, 
         role || null, 
@@ -190,21 +198,28 @@ app.post('/api/employees', async (req, res) => {
         Date.now()
       ]
     );
-    res.json({ success: true, id: result.rows[0].id });
+    await client.query('COMMIT');
+    res.json({ success: true, id: result.rows[0].code });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
 app.put('/api/employees/:id', async (req, res) => {
   const { id } = req.params;
   const { code, name, dept, role, email, phone, blood, status, joinDate, resignDate, address } = req.body;
+  if (!name || !joinDate) {
+    return res.status(400).json({ error: 'Name and Joining Date are required.' });
+  }
   try {
     await pool.query(
       `UPDATE employees 
        SET code = $1, name = $2, dept = $3, role = $4, email = $5, phone = $6, blood = $7, status = $8, join_date = $9, resign_date = $10, address = $11, updated_at = $12 
-       WHERE id = $13`,
+       WHERE code = $13`,
       [
         code, 
         name, 
@@ -231,7 +246,7 @@ app.put('/api/employees/:id', async (req, res) => {
 app.delete('/api/employees/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    await pool.query('DELETE FROM employees WHERE id = $1', [id]);
+    await pool.query('DELETE FROM employees WHERE code = $1', [id]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -513,7 +528,7 @@ app.put('/api/assignments/:id/return', async (req, res) => {
     const assignRes = await client.query(
       `SELECT e.name AS employee_name 
        FROM assignments a
-       LEFT JOIN employees e ON a.employee_id = e.id 
+       LEFT JOIN employees e ON a.employee_id = e.code 
        WHERE a.id = $1`, 
       [id]
     );
@@ -720,6 +735,106 @@ app.delete('/api/repairs/:id', async (req, res) => {
 // Start Server
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT} - [v2 - Mapped Products]`);
+  try {
+    // 1. Create the sequence if it does not exist
+    await pool.query("CREATE SEQUENCE IF NOT EXISTS employees_code_seq START WITH 1");
+    console.log("Successfully verified/created employees_code_seq sequence.");
+
+    // 2. Query all existing employees to check and migrate their codes
+    const empsRes = await pool.query("SELECT code FROM employees ORDER BY code");
+    const updates = [];
+    const usedInts = new Set();
+    
+    // First pass: identify already numeric codes
+    for (const row of empsRes.rows) {
+      const trimmed = (row.code || '').trim();
+      const val = parseInt(trimmed, 10);
+      if (!isNaN(val) && String(val) === trimmed) {
+        usedInts.add(val);
+      }
+    }
+    
+    // Helper to get next available integer starting from 1
+    let nextAvailableInt = 1;
+    const getNextInt = () => {
+      while (usedInts.has(nextAvailableInt)) {
+        nextAvailableInt++;
+      }
+      usedInts.add(nextAvailableInt);
+      return nextAvailableInt;
+    };
+    
+    // Second pass: migrate non-numeric codes
+    for (const row of empsRes.rows) {
+      const trimmed = (row.code || '').trim();
+      const val = parseInt(trimmed, 10);
+      
+      // If it's already a clean numeric string, keep it
+      if (!isNaN(val) && String(val) === trimmed) {
+        continue;
+      }
+      
+      // Try parsing from standard formats like EMP001
+      const match = trimmed.match(/^EMP0*(\d+)$/i);
+      let newInt;
+      if (match) {
+        newInt = parseInt(match[1], 10);
+        if (usedInts.has(newInt)) {
+          newInt = getNextInt();
+        } else {
+          usedInts.add(newInt);
+        }
+      } else {
+        newInt = getNextInt();
+      }
+      
+      updates.push({ oldCode: row.code, newCode: String(newInt) });
+    }
+    
+    // Run updates in a transaction so foreign key updates cascade atomically
+    if (updates.length > 0) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        for (const update of updates) {
+          console.log(`Migrating employee code: ${update.oldCode} -> ${update.newCode}`);
+          await client.query('UPDATE employees SET code = $1 WHERE code = $2', [update.newCode, update.oldCode]);
+        }
+        await client.query('COMMIT');
+        console.log(`Successfully migrated ${updates.length} employee codes to numeric format.`);
+      } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Error migrating employee codes in transaction:', err);
+      } finally {
+        client.release();
+      }
+    }
+
+    // 3. Sync the sequence with the max numeric value in the DB
+    const finalEmpsRes = await pool.query("SELECT code FROM employees");
+    let maxVal = 0;
+    for (const row of finalEmpsRes.rows) {
+      const val = parseInt(row.code, 10);
+      if (!isNaN(val) && val > maxVal) {
+        maxVal = val;
+      }
+    }
+    if (maxVal > 0) {
+      await pool.query(`SELECT setval('employees_code_seq', ${maxVal})`);
+    }
+    console.log(`Employee code sequence synced. Next code will be ${maxVal + 1}`);
+  } catch (err) {
+    console.error('Error initializing/migrating employee codes on server startup:', err.message);
+  }
+
+  try {
+    await pool.query('UPDATE employees SET join_date = CURRENT_DATE WHERE join_date IS NULL');
+    await pool.query('ALTER TABLE employees ALTER COLUMN join_date SET NOT NULL');
+    console.log('Successfully verified/altered employees.join_date to NOT NULL.');
+  } catch (err) {
+    console.error('Error altering employees.join_date to NOT NULL:', err.message);
+  }
+
   try {
     await pool.query('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_code_key');
     console.log('Successfully dropped/verified unique constraint on product code.');

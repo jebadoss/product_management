@@ -1,0 +1,1277 @@
+=== DATABASE DIAGNOSTICS ===
+Timestamp: 2026-07-03T05:38:25.289Z
+
+Testing connection to database...
+Success! Database Time: Fri Jul 03 2026 11:08:25 GMT+0530 (India Standard Time)
+
+Querying categories table...
+Categories count: 3
+[
+  {
+    "id": 1,
+    "name": "Computer",
+    "updated_at": "1783053198549"
+  },
+  {
+    "id": 2,
+    "name": "Laptop",
+    "updated_at": "1783053215597"
+  },
+  {
+    "id": 3,
+    "name": "Accessories",
+    "updated_at": "1783053223957"
+  }
+]
+
+Querying products table...
+Products count: 120
+[
+  {
+    "id": 2,
+    "code": "002",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262606"
+  },
+  {
+    "id": 3,
+    "code": "003",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262607"
+  },
+  {
+    "id": 4,
+    "code": "004",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262608"
+  },
+  {
+    "id": 5,
+    "code": "005",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262609"
+  },
+  {
+    "id": 6,
+    "code": "006",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262610"
+  },
+  {
+    "id": 7,
+    "code": "007",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262611"
+  },
+  {
+    "id": 8,
+    "code": "008",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262612"
+  },
+  {
+    "id": 9,
+    "code": "009",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262613"
+  },
+  {
+    "id": 10,
+    "code": "010",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262614"
+  },
+  {
+    "id": 11,
+    "code": "011",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262614"
+  },
+  {
+    "id": 12,
+    "code": "012",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262615"
+  },
+  {
+    "id": 13,
+    "code": "013",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262616"
+  },
+  {
+    "id": 14,
+    "code": "014",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262617"
+  },
+  {
+    "id": 15,
+    "code": "015",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262618"
+  },
+  {
+    "id": 17,
+    "code": "017",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262619"
+  },
+  {
+    "id": 18,
+    "code": "018",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262620"
+  },
+  {
+    "id": 19,
+    "code": "019",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262621"
+  },
+  {
+    "id": 20,
+    "code": "020",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262621"
+  },
+  {
+    "id": 21,
+    "code": "021",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262622"
+  },
+  {
+    "id": 22,
+    "code": "022",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262623"
+  },
+  {
+    "id": 23,
+    "code": "023",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262623"
+  },
+  {
+    "id": 24,
+    "code": "024",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262624"
+  },
+  {
+    "id": 25,
+    "code": "025",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262625"
+  },
+  {
+    "id": 26,
+    "code": "026",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262625"
+  },
+  {
+    "id": 27,
+    "code": "027",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262626"
+  },
+  {
+    "id": 28,
+    "code": "028",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262627"
+  },
+  {
+    "id": 29,
+    "code": "029",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262627"
+  },
+  {
+    "id": 30,
+    "code": "030",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053262628"
+  },
+  {
+    "id": 32,
+    "code": "002",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297888"
+  },
+  {
+    "id": 33,
+    "code": "003",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297889"
+  },
+  {
+    "id": 34,
+    "code": "004",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297891"
+  },
+  {
+    "id": 35,
+    "code": "005",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297892"
+  },
+  {
+    "id": 36,
+    "code": "006",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297893"
+  },
+  {
+    "id": 37,
+    "code": "007",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297893"
+  },
+  {
+    "id": 38,
+    "code": "008",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297894"
+  },
+  {
+    "id": 39,
+    "code": "009",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297895"
+  },
+  {
+    "id": 40,
+    "code": "010",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297896"
+  },
+  {
+    "id": 41,
+    "code": "011",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297897"
+  },
+  {
+    "id": 42,
+    "code": "012",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297898"
+  },
+  {
+    "id": 43,
+    "code": "013",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297899"
+  },
+  {
+    "id": 44,
+    "code": "014",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297900"
+  },
+  {
+    "id": 45,
+    "code": "015",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297901"
+  },
+  {
+    "id": 46,
+    "code": "016",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297902"
+  },
+  {
+    "id": 47,
+    "code": "017",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297903"
+  },
+  {
+    "id": 48,
+    "code": "018",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297904"
+  },
+  {
+    "id": 49,
+    "code": "019",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297905"
+  },
+  {
+    "id": 50,
+    "code": "020",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297906"
+  },
+  {
+    "id": 51,
+    "code": "021",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297906"
+  },
+  {
+    "id": 52,
+    "code": "022",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297907"
+  },
+  {
+    "id": 53,
+    "code": "023",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297908"
+  },
+  {
+    "id": 54,
+    "code": "024",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297909"
+  },
+  {
+    "id": 55,
+    "code": "025",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297910"
+  },
+  {
+    "id": 56,
+    "code": "026",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297911"
+  },
+  {
+    "id": 57,
+    "code": "027",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297911"
+  },
+  {
+    "id": 58,
+    "code": "028",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297912"
+  },
+  {
+    "id": 59,
+    "code": "029",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297913"
+  },
+  {
+    "id": 60,
+    "code": "030",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053297914"
+  },
+  {
+    "id": 62,
+    "code": "002",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316880"
+  },
+  {
+    "id": 63,
+    "code": "003",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316880"
+  },
+  {
+    "id": 64,
+    "code": "004",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316881"
+  },
+  {
+    "id": 65,
+    "code": "005",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316882"
+  },
+  {
+    "id": 66,
+    "code": "006",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316883"
+  },
+  {
+    "id": 67,
+    "code": "007",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316884"
+  },
+  {
+    "id": 68,
+    "code": "008",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316884"
+  },
+  {
+    "id": 69,
+    "code": "009",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316885"
+  },
+  {
+    "id": 70,
+    "code": "010",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316886"
+  },
+  {
+    "id": 71,
+    "code": "011",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316886"
+  },
+  {
+    "id": 72,
+    "code": "012",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316887"
+  },
+  {
+    "id": 73,
+    "code": "013",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316888"
+  },
+  {
+    "id": 74,
+    "code": "014",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316888"
+  },
+  {
+    "id": 75,
+    "code": "015",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316890"
+  },
+  {
+    "id": 76,
+    "code": "016",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316891"
+  },
+  {
+    "id": 77,
+    "code": "017",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316891"
+  },
+  {
+    "id": 78,
+    "code": "018",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316892"
+  },
+  {
+    "id": 79,
+    "code": "019",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316893"
+  },
+  {
+    "id": 80,
+    "code": "020",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316893"
+  },
+  {
+    "id": 81,
+    "code": "021",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316894"
+  },
+  {
+    "id": 82,
+    "code": "022",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316894"
+  },
+  {
+    "id": 83,
+    "code": "023",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316895"
+  },
+  {
+    "id": 84,
+    "code": "024",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316896"
+  },
+  {
+    "id": 85,
+    "code": "025",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316896"
+  },
+  {
+    "id": 86,
+    "code": "026",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316897"
+  },
+  {
+    "id": 87,
+    "code": "027",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316898"
+  },
+  {
+    "id": 88,
+    "code": "028",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316898"
+  },
+  {
+    "id": 89,
+    "code": "029",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316899"
+  },
+  {
+    "id": 90,
+    "code": "030",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053316900"
+  },
+  {
+    "id": 92,
+    "code": "002",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357530"
+  },
+  {
+    "id": 93,
+    "code": "003",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357530"
+  },
+  {
+    "id": 94,
+    "code": "004",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357531"
+  },
+  {
+    "id": 95,
+    "code": "005",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357533"
+  },
+  {
+    "id": 96,
+    "code": "006",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357533"
+  },
+  {
+    "id": 97,
+    "code": "007",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357534"
+  },
+  {
+    "id": 16,
+    "code": "016",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783056470479"
+  },
+  {
+    "id": 98,
+    "code": "008",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357534"
+  },
+  {
+    "id": 99,
+    "code": "009",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357536"
+  },
+  {
+    "id": 100,
+    "code": "010",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357537"
+  },
+  {
+    "id": 101,
+    "code": "011",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357537"
+  },
+  {
+    "id": 102,
+    "code": "012",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357538"
+  },
+  {
+    "id": 103,
+    "code": "013",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357538"
+  },
+  {
+    "id": 104,
+    "code": "014",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357539"
+  },
+  {
+    "id": 105,
+    "code": "015",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357540"
+  },
+  {
+    "id": 106,
+    "code": "016",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357540"
+  },
+  {
+    "id": 107,
+    "code": "017",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357541"
+  },
+  {
+    "id": 108,
+    "code": "018",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357541"
+  },
+  {
+    "id": 109,
+    "code": "019",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357542"
+  },
+  {
+    "id": 110,
+    "code": "020",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357542"
+  },
+  {
+    "id": 111,
+    "code": "021",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357543"
+  },
+  {
+    "id": 112,
+    "code": "022",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357543"
+  },
+  {
+    "id": 113,
+    "code": "023",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357544"
+  },
+  {
+    "id": 114,
+    "code": "024",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357545"
+  },
+  {
+    "id": 115,
+    "code": "025",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357545"
+  },
+  {
+    "id": 116,
+    "code": "026",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357546"
+  },
+  {
+    "id": 117,
+    "code": "027",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357546"
+  },
+  {
+    "id": 118,
+    "code": "028",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357547"
+  },
+  {
+    "id": 119,
+    "code": "029",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357547"
+  },
+  {
+    "id": 120,
+    "code": "030",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Available",
+    "updated_at": "1783053357548"
+  },
+  {
+    "id": 1,
+    "code": "001",
+    "name": "keyboard",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Assigned",
+    "updated_at": "1783054771735"
+  },
+  {
+    "id": 31,
+    "code": "001",
+    "name": "Mouse",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Assigned",
+    "updated_at": "1783054771773"
+  },
+  {
+    "id": 61,
+    "code": "001",
+    "name": "CPU",
+    "cat": "Computer",
+    "purchase_date": "2026-06-30T18:30:00.000Z",
+    "qty": 1,
+    "status": "Assigned",
+    "updated_at": "1783054771774"
+  },
+  {
+    "id": 91,
+    "code": "001",
+    "name": "Monitor",
+    "cat": "Computer",
+    "purchase_date": "2026-07-01T18:30:00.000Z",
+    "qty": 1,
+    "status": "Assigned",
+    "updated_at": "1783054771776"
+  }
+]
+
+Querying assignments table...
+Assignments count: 2
+[
+  {
+    "id": 1,
+    "employee_id": "1",
+    "assigned_date": "2026-07-02T18:30:00.000Z",
+    "return_date": "",
+    "units": 4,
+    "updated_at": "1783054771727"
+  },
+  {
+    "id": 2,
+    "employee_id": "5",
+    "assigned_date": "2026-07-02T18:30:00.000Z",
+    "return_date": "03 Jul 2026, 10:57 am",
+    "units": 1,
+    "updated_at": "1783056470484"
+  }
+]
+
+Querying assignment_products table...
+Junction rows count: 5
+[
+  {
+    "assignment_id": 1,
+    "product_id": 1
+  },
+  {
+    "assignment_id": 1,
+    "product_id": 31
+  },
+  {
+    "assignment_id": 1,
+    "product_id": 61
+  },
+  {
+    "assignment_id": 1,
+    "product_id": 91
+  },
+  {
+    "assignment_id": 2,
+    "product_id": 16
+  }
+]
+

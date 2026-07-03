@@ -9,6 +9,9 @@ DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS employees CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS history CASCADE;
+DROP SEQUENCE IF EXISTS employees_code_seq CASCADE;
+
+CREATE SEQUENCE IF NOT EXISTS employees_code_seq START WITH 1;
 
 -- 1. Categories Table
 CREATE TABLE IF NOT EXISTS categories (
@@ -19,8 +22,7 @@ CREATE TABLE IF NOT EXISTS categories (
 
 -- 2. Employees Table
 CREATE TABLE IF NOT EXISTS employees (
-    id SERIAL PRIMARY KEY,
-    code VARCHAR(50) UNIQUE NOT NULL,
+    code VARCHAR(50) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     dept VARCHAR(100),
     role VARCHAR(100),
@@ -28,7 +30,7 @@ CREATE TABLE IF NOT EXISTS employees (
     phone VARCHAR(20),
     blood VARCHAR(10),
     status VARCHAR(20) DEFAULT 'Active',
-    join_date DATE,
+    join_date DATE NOT NULL,
     resign_date DATE,
     address TEXT,
     updated_at BIGINT NOT NULL
@@ -49,7 +51,7 @@ CREATE TABLE IF NOT EXISTS products (
 -- 4. Assignments Table (3NF - Removed redundant employee_name and dept columns)
 CREATE TABLE IF NOT EXISTS assignments (
     id SERIAL PRIMARY KEY,
-    employee_id INT REFERENCES employees(id) ON DELETE SET NULL,
+    employee_id VARCHAR(50) REFERENCES employees(code) ON UPDATE CASCADE ON DELETE SET NULL,
     assigned_date DATE NOT NULL,
     return_date VARCHAR(100), -- Storing custom local formatted string as in existing code
     units INT DEFAULT 1,
