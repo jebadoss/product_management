@@ -117,47 +117,46 @@
         </div>
       </div>
     </nav>
-    <div class="sidebar-footer">
-      <p>v2.0 — PMS Pro</p>
+    <div class="sidebar-footer" style="padding: 16px 20px; border-top: 1px solid rgba(255, 255, 255, .08); margin-top: auto; font-size: 12px; color: rgba(255, 255, 255, .4); display: flex; flex-direction: column; gap: 12px;">
+      <!-- User Profile -->
+      <div class="user-profile" style="display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 12px;">
+        <div class="user-avatar" style="width: 24px; height: 24px; background: linear-gradient(135deg, var(--accent), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: var(--white); text-shadow: 0 1px 2px rgba(0,0,0,0.1);">A</div>
+        <span class="user-name" style="font-size: 13px; font-weight: 500; color: var(--white);">Admin</span>
+      </div>
+      <!-- Logout Button -->
+      <button class="btn btn-secondary" onclick="logout()" style="display: flex; align-items: center; gap: 6px; background-color: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; cursor: pointer; width: 100%; justify-content: center; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+        </svg>
+        Logout
+      </button>
+      <p style="text-align: center; font-size: 11px; color: rgba(255, 255, 255, 0.3);">v2.0 — PMS Pro</p>
     </div>
   </aside>
 
   <!-- MAIN -->
-  <div class="main">
-    <div class="topbar">
+  <div class="main">    <div class="topbar">
       <div>
         <div class="topbar-title" id="page-title">Dashboard</div>
       </div>
-      <div class="topbar-actions" style="display:flex; align-items:center; gap:8px;">
-        <!-- Categories Search box (hidden by default) -->
-        <div class="search-box" id="topbar-cat-search-wrapper" style="display:none; position:relative;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            style="position:absolute; left:9px; top:50%; transform:translateY(-50%); color:var(--text-secondary); width:14px; height:14px; pointer-events:none;">
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
-          <input id="cat-search" type="text" placeholder="Search categories..." oninput="searchCategories(this.value)"
-            style="background:var(--bg); border:1px solid var(--border); border-radius:7px; padding:7px 12px 7px 32px; font-size:13px; width:200px; outline:none;">
-          <button type="button" class="search-clear" onclick="clearCatSearch()" aria-label="Clear search"
-            style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:0; display:flex; align-items:center; color:var(--text-secondary);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              style="width:12px; height:12px;">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+      <button class="btn btn-secondary" onclick="exportPDF()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2-2H5a2 2 0 01-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Export PDF
+      </button>
+      <div class="topbar-actions" style="display:flex; align-items:center; gap:8px; margin-left:auto;">
+
+        <!-- Admin Profile -->
+        <div class="user-profile" id="topbar-user-profile" style="display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px;">
+          <div class="user-avatar" style="width: 24px; height: 24px; background: linear-gradient(135deg, var(--accent), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: var(--white); text-shadow: 0 1px 2px rgba(0,0,0,0.1);">A</div>
+          <span class="user-name" style="font-size: 13px; font-weight: 500; color: var(--text-primary);">Admin</span>
         </div>
-        <button class="btn btn-secondary" onclick="exportPDF()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          Export PDF
-        </button>
-        <button class="btn btn-secondary" onclick="logout()" style="display: flex; align-items: center; gap: 6px; background-color: #fee2e2; color: #dc2626; border-color: #fca5a5;">
+        <button class="btn btn-secondary" id="topbar-logout-btn" onclick="logout()" style="display: flex; align-items: center; gap: 6px; background-color: #fee2e2; color: #dc2626; border-color: #fca5a5;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
           </svg>
           Logout
         </button>
@@ -168,9 +167,6 @@
 
       <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
-        <div class="dashboard-actions" style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="navigate('products')">Products</button>
-        </div>
         <div class="stats-grid">
           <div class="stat-card color-blue" style="cursor:pointer;" onclick="viewProductsAll()">
             <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -278,6 +274,7 @@
             <table>
               <thead>
                 <tr>
+                  <th>Code</th>
                   <th>Employee Name</th>
                   <th>Department</th>
                   <th>Role</th>
@@ -330,6 +327,19 @@
       <!-- CATEGORIES -->
       <div class="page" id="page-categories">
         <div class="module-toolbar" style="flex-wrap:wrap; gap:8px; margin-bottom: 20px;">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+            <input id="cat-search" type="text" placeholder="Search" oninput="searchCategories(this.value)">
+            <button type="button" class="search-clear" onclick="clearCatSearch()" aria-label="Clear search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
           <button class="btn btn-primary" onclick="openCategoryModal()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -619,7 +629,7 @@
               </button>
             </div>
           </div>
-          <div class="form-group"><label>Department</label>
+          <div class="form-group"><label>Department *</label>
             <div style="position:relative; display:flex; align-items:center;">
               <input type="text" id="ef-dept" placeholder="Department"
                 oninput="validateNameRoleDeptInput(this, 'Department')" style="width:100%; padding-right:28px;">
@@ -633,7 +643,7 @@
               </button>
             </div>
           </div>
-          <div class="form-group"><label>Role</label>
+          <div class="form-group"><label>Role *</label>
             <div style="position:relative; display:flex; align-items:center;">
               <input type="text" id="ef-role" placeholder="Role" oninput="validateNameRoleDeptInput(this, 'Role')"
                 style="width:100%; padding-right:28px;">
@@ -647,7 +657,7 @@
               </button>
             </div>
           </div>
-          <div class="form-group"><label>Email</label>
+          <div class="form-group"><label>Email *</label>
             <div style="position:relative; display:flex; align-items:center;">
               <input type="email" id="ef-email" placeholder="Email" style="width:100%; padding-right:28px;">
               <button type="button" class="search-clear" onclick="clearEmpField('ef-email')" aria-label="Clear field"
@@ -675,7 +685,7 @@
               </button>
             </div>
           </div>
-          <div class="form-group"><label>Blood Group</label>
+          <div class="form-group"><label>Blood Group *</label>
             <div style="position:relative; display:flex; align-items:center;">
               <input type="text" id="ef-blood" placeholder="Blood Group" style="width:100%; padding-right:28px;">
               <button type="button" class="search-clear" onclick="clearEmpField('ef-blood')" aria-label="Clear field"
@@ -688,7 +698,7 @@
               </button>
             </div>
           </div>
-          <div class="form-group"><label>Status</label>
+          <div class="form-group"><label>Status *</label>
             <select id="ef-status">
               <option value="">Status</option>
               <option value="Active">Active</option>
@@ -696,7 +706,7 @@
             </select>
           </div>
           <div class="form-group"><label>Joining Date *</label><input type="date" id="ef-join"></div>
-          <div class="form-group full"><label>Address</label><textarea id="ef-addr" placeholder="Address"></textarea>
+          <div class="form-group full"><label>Address *</label><textarea id="ef-addr" placeholder="Address"></textarea>
           </div>
         </div>
       </div>
@@ -766,7 +776,7 @@
               onkeypress="return event.charCode >= 48 && event.charCode <= 57"
               oninput="this.value = this.value.replace(/[^0-9]/g, '')" style="width:100%;">
           </div>
-          <div class="form-group"><label>Purchase Date</label><input type="date" id="pf-date"
+          <div class="form-group"><label>Purchase Date *</label><input type="date" id="pf-date"
               placeholder="Select purchase date"></div>
         </div>
       </div>
@@ -847,7 +857,7 @@
 
           <!-- 5. Assigned Date -->
           <div class="form-group">
-            <label>Assigned Date</label>
+            <label>Assigned Date *</label>
             <input type="date" id="af-date">
           </div>
         </div>
@@ -895,7 +905,7 @@
               <option value="Replaced">Replaced</option>
             </select>
           </div>
-          <div class="form-group"><label>Date Reported</label><input type="date" id="df-date"></div>
+          <div class="form-group"><label>Date Reported *</label><input type="date" id="df-date"></div>
           <div class="form-group"><label>Reported By *</label>
             <div style="position:relative; display:flex; align-items:center;">
               <input type="text" id="df-by" placeholder="Name" style="width:100%; padding-right:28px;">
@@ -949,7 +959,7 @@
             <input type="hidden" id="rf-prod" value="">
             <div id="rf-prod-suggestions" class="autocomplete-suggestions" style="display:none; width:100%;"></div>
           </div>
-          <div class="form-group"><label>Repair Center</label>
+          <div class="form-group"><label>Repair Center *</label>
             <div style="position:relative; display:flex; align-items:center;">
               <input type="text" id="rf-center" placeholder="Service Center Name"
                 oninput="validateAlphanumericInput(this, 'Repair Center')" style="width:100%; padding-right:28px;">
@@ -978,7 +988,7 @@
               </button>
             </div>
           </div>
-          <div class="form-group"><label>Taken By</label>
+          <div class="form-group"><label>Taken By *</label>
             <div style="position:relative; display:flex; align-items:center;">
               <input type="text" id="rf-taken" placeholder="Person name"
                 oninput="validateNameRoleDeptInput(this, 'Taken By')" style="width:100%; padding-right:28px;">
@@ -992,7 +1002,7 @@
               </button>
             </div>
           </div>
-          <div class="form-group"><label>Date Sent</label><input type="date" id="rf-sent"></div>
+          <div class="form-group"><label>Date Sent *</label><input type="date" id="rf-sent"></div>
           <div class="form-group"><label>Status</label>
             <select id="rf-status">
               <option value="">Status</option>
@@ -1038,7 +1048,7 @@
             <input type="number" id="acc-qty" placeholder="1" min="1" value="1">
           </div>
           <div class="form-group">
-            <label>Purchase Date</label>
+            <label>Purchase Date *</label>
             <input type="date" id="acc-date">
           </div>
           <div class="form-group">

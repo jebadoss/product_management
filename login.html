@@ -555,9 +555,10 @@
 
     <!-- RIGHT PANEL - Form Panel -->
     <div class="login-panel">
+      <!-- LOGIN CARD -->
       <div class="login-box" id="login-card">
         <div class="login-header">
-          <h2>Sign In</h2>
+          <h2>Login</h2>
           <p>Provide administrative credentials to proceed</p>
         </div>
 
@@ -573,7 +574,7 @@
             <input type="password" id="password" class="form-input" placeholder=" " required
               autocomplete="current-password">
             <label class="form-label" for="password">Password</label>
-            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility()"
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password', 'password-toggle-icon')"
               aria-label="Toggle Password Visibility">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="password-toggle-icon">
                 <!-- Eye closed by default -->
@@ -586,12 +587,8 @@
 
           <!-- Switch & Link -->
           <div class="utilities-row">
-            <label class="switch-container">
-              <input type="checkbox" id="remember-me">
-              <span class="switch-slider"></span>
-              Remember Me
-            </label>
-            <a href="#" class="forgot-link" onclick="forgotAlert(event)">Forgot Password?</a>
+            <a href="#" class="forgot-link" onclick="switchCard('signup-card'); event.preventDefault();">Add Admin</a>
+            <a href="#" class="forgot-link" onclick="switchCard('forgot-card'); event.preventDefault();">Forgot Password?</a>
           </div>
 
           <!-- Submit Button -->
@@ -601,10 +598,150 @@
               stroke-width="3">
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            <span id="btn-text">Sign In</span>
+            <span id="btn-text">Login</span>
           </button>
         </form>
       </div>
+
+      <!-- SIGNUP CARD -->
+      <div class="login-box" id="signup-card" style="display: none;">
+        <div class="login-header">
+          <h2>Register Admin</h2>
+          <p>Create a new administrative account</p>
+        </div>
+
+        <form id="signup-form" onsubmit="handleSignup(event)">
+          <!-- Username input -->
+          <div class="form-group">
+            <input type="text" id="signup-username" class="form-input" placeholder=" " required autocomplete="username">
+            <label class="form-label" for="signup-username">Username</label>
+          </div>
+
+          <!-- Email input -->
+          <div class="form-group">
+            <input type="email" id="signup-email" class="form-input" placeholder=" " required autocomplete="email">
+            <label class="form-label" for="signup-email">Email Address</label>
+          </div>
+
+          <!-- Password input -->
+          <div class="form-group password-wrapper">
+            <input type="password" id="signup-password" class="form-input" placeholder=" " required
+              autocomplete="new-password">
+            <label class="form-label" for="signup-password">Password</label>
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('signup-password', 'signup-password-toggle-icon')"
+              aria-label="Toggle Password Visibility">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="signup-password-toggle-icon">
+                <path
+                  d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Confirm Password input -->
+          <div class="form-group password-wrapper">
+            <input type="password" id="signup-confirm-password" class="form-input" placeholder=" " required
+              autocomplete="new-password">
+            <label class="form-label" for="signup-confirm-password">Confirm Password</label>
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('signup-confirm-password', 'signup-confirm-password-toggle-icon')"
+              aria-label="Toggle Password Visibility">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="signup-confirm-password-toggle-icon">
+                <path
+                  d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="utilities-row" style="justify-content: flex-end;">
+            <a href="#" class="forgot-link" onclick="switchCard('login-card'); event.preventDefault();">Back to Login</a>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="btn-login" id="btn-signup-submit">
+            <span class="btn-spinner" id="btn-signup-spinner"></span>
+            <svg class="btn-success-icon" id="btn-signup-success-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="3">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span id="btn-signup-text">Register Admin</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- FORGOT PASSWORD CARD -->
+      <div class="login-box" id="forgot-card" style="display: none;">
+        <div class="login-header">
+          <h2>Reset Password</h2>
+          <p id="forgot-subtitle">Reset credentials for your administrative account</p>
+        </div>
+
+        <!-- Step 1 Form: Request OTP -->
+        <form id="forgot-step1-form" onsubmit="handleRequestOTP(event)">
+          <div class="form-group">
+            <input type="text" id="reset-username" class="form-input" placeholder=" " required autocomplete="username">
+            <label class="form-label" for="reset-username">Username</label>
+          </div>
+
+          <div class="utilities-row" style="justify-content: flex-end;">
+            <a href="#" class="forgot-link" onclick="switchCard('login-card'); event.preventDefault();">Back to Login</a>
+          </div>
+
+          <button type="submit" class="btn-login" id="btn-otp-submit">
+            <span class="btn-spinner" id="btn-otp-spinner"></span>
+            <svg class="btn-success-icon" id="btn-otp-success-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="3">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span id="btn-otp-text">Send Verification Code</span>
+          </button>
+        </form>
+
+        <!-- Step 2 Form: Verify OTP and Reset -->
+        <form id="forgot-step2-form" onsubmit="handleVerifyOTPAndReset(event)" style="display: none;">
+          <div class="form-group">
+            <input type="text" id="reset-otp" class="form-input" placeholder=" " required maxlength="6" pattern="\d{6}">
+            <label class="form-label" for="reset-otp">Verification Code (6-digit)</label>
+          </div>
+
+          <div class="form-group password-wrapper">
+            <input type="password" id="reset-new-password" class="form-input" placeholder=" " required autocomplete="new-password">
+            <label class="form-label" for="reset-new-password">New Password</label>
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('reset-new-password', 'reset-new-password-toggle-icon')"
+              aria-label="Toggle Password Visibility">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="reset-new-password-toggle-icon">
+                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="form-group password-wrapper">
+            <input type="password" id="reset-confirm-password" class="form-input" placeholder=" " required autocomplete="new-password">
+            <label class="form-label" for="reset-confirm-password">Confirm Password</label>
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('reset-confirm-password', 'reset-confirm-password-toggle-icon')"
+              aria-label="Toggle Password Visibility">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="reset-confirm-password-toggle-icon">
+                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="utilities-row">
+            <a href="#" class="forgot-link" onclick="goBackToForgotStep1(); event.preventDefault();">Resend Code</a>
+            <a href="#" class="forgot-link" onclick="switchCard('login-card'); event.preventDefault();">Back to Login</a>
+          </div>
+
+          <button type="submit" class="btn-login" id="btn-reset-submit">
+            <span class="btn-spinner" id="btn-reset-spinner"></span>
+            <svg class="btn-success-icon" id="btn-reset-success-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="3">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span id="btn-reset-text">Reset Password</span>
+          </button>
+        </form>
     </div>
   </div>
 
@@ -614,9 +751,30 @@
       window.location.replace('index.html');
     }
 
-    function togglePasswordVisibility() {
-      const passwordInput = document.getElementById('password');
-      const toggleIcon = document.getElementById('password-toggle-icon');
+    // Clear credentials on page show so placeholders/labels are fully reset
+    function clearLoginFields() {
+      const inputs = [
+        'username', 'password',
+        'signup-username', 'signup-email', 'signup-password', 'signup-confirm-password',
+        'reset-username', 'reset-otp', 'reset-new-password', 'reset-confirm-password'
+      ];
+      inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+    }
+
+    window.addEventListener('pageshow', () => {
+      clearLoginFields();
+      setTimeout(clearLoginFields, 50);
+      setTimeout(clearLoginFields, 200);
+      setTimeout(clearLoginFields, 500);
+    });
+
+    function togglePasswordVisibility(inputId, iconId) {
+      const passwordInput = document.getElementById(inputId);
+      const toggleIcon = document.getElementById(iconId);
+      if (!passwordInput || !toggleIcon) return;
 
       if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
@@ -633,9 +791,25 @@
       }
     }
 
-    function forgotAlert(event) {
-      event.preventDefault();
-      showToast('Default Administrator credentials are admin / admin', 'info');
+    function switchCard(showId) {
+      const cards = ['login-card', 'signup-card', 'forgot-card'];
+      cards.forEach(id => {
+        const card = document.getElementById(id);
+        if (!card) return;
+        if (id === showId) {
+          card.style.display = 'block';
+          card.style.animation = 'none';
+          card.offsetHeight; // trigger reflow
+          card.style.animation = 'slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+      
+      // Reset forgot password sub-form step visibility on switch
+      if (showId === 'forgot-card') {
+        goBackToForgotStep1();
+      }
     }
 
     function showToast(message, type = 'error') {
@@ -663,6 +837,21 @@
         toast.classList.remove('show');
       }, 3500);
     }
+
+    const validateUsername = (username) => {
+      const regex = /^[a-zA-Z0-9_]{4,}$/;
+      return regex.test(username);
+    };
+
+    const validateEmail = (email) => {
+      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return regex.test(email);
+    };
+
+    const validatePassword = (password) => {
+      const regex = /^(?=.*[0-9])(?=.*[@$!%*#?&])[A-Za-z0-9@$!%*#?&]{8,}$/;
+      return regex.test(password);
+    };
 
     function handleLogin(event) {
       event.preventDefault();
@@ -728,7 +917,274 @@
           showToast(err.message || 'Invalid username or password');
           submitBtn.disabled = false;
           spinner.style.display = 'none';
-          btnText.textContent = 'Sign In';
+          btnText.textContent = 'Login';
+        });
+    }
+
+    function handleSignup(event) {
+      event.preventDefault();
+
+      const usernameInput = document.getElementById('signup-username');
+      const emailInput = document.getElementById('signup-email');
+      const passwordInput = document.getElementById('signup-password');
+      const confirmPasswordInput = document.getElementById('signup-confirm-password');
+      const signupCard = document.getElementById('signup-card');
+      const submitBtn = document.getElementById('btn-signup-submit');
+      const spinner = document.getElementById('btn-signup-spinner');
+      const successIcon = document.getElementById('btn-signup-success-icon');
+      const btnText = document.getElementById('btn-signup-text');
+
+      const username = usernameInput.value.trim();
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+      const confirmPassword = confirmPasswordInput.value.trim();
+
+      // Client-side validations
+      if (!validateUsername(username)) {
+        signupCard.classList.add('shake-animation');
+        setTimeout(() => signupCard.classList.remove('shake-animation'), 400);
+        showToast('Username: min 4 alphanumeric/underscore characters');
+        return;
+      }
+
+      if (!email) {
+        signupCard.classList.add('shake-animation');
+        setTimeout(() => signupCard.classList.remove('shake-animation'), 400);
+        showToast('Email address is required');
+        return;
+      }
+
+      if (!validateEmail(email)) {
+        signupCard.classList.add('shake-animation');
+        setTimeout(() => signupCard.classList.remove('shake-animation'), 400);
+        showToast('Please enter a valid email address');
+        return;
+      }
+
+      if (!validatePassword(password)) {
+        signupCard.classList.add('shake-animation');
+        setTimeout(() => signupCard.classList.remove('shake-animation'), 400);
+        showToast('Password: min 8 chars, 1 number, 1 special char');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        signupCard.classList.add('shake-animation');
+        setTimeout(() => signupCard.classList.remove('shake-animation'), 400);
+        showToast('Passwords do not match');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.textContent = 'Registering...';
+
+      const API_BASE = window.location.origin.includes('localhost:3000') || window.location.origin.includes('127.0.0.1:3000')
+        ? ''
+        : 'http://localhost:3000';
+
+      fetch(API_BASE + '/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      })
+        .then(res => {
+          if (!res.ok) {
+            return res.json().then(data => { throw new Error(data.error || 'Registration failed') });
+          }
+          return res.json();
+        })
+        .then(data => {
+          spinner.style.display = 'none';
+          successIcon.style.display = 'block';
+          btnText.textContent = 'Registered';
+          submitBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+          submitBtn.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)';
+
+          showToast('Admin registered successfully!', 'success');
+
+          setTimeout(() => {
+            clearLoginFields();
+            submitBtn.disabled = false;
+            successIcon.style.display = 'none';
+            btnText.textContent = 'Register Admin';
+            submitBtn.style.background = '';
+            submitBtn.style.boxShadow = '';
+            switchCard('login-card');
+          }, 1500);
+        })
+        .catch(err => {
+          signupCard.classList.add('shake-animation');
+          setTimeout(() => signupCard.classList.remove('shake-animation'), 400);
+          showToast(err.message);
+          submitBtn.disabled = false;
+          spinner.style.display = 'none';
+          btnText.textContent = 'Register Admin';
+        });
+    }
+
+    function goBackToForgotStep1() {
+      document.getElementById('forgot-step1-form').style.display = 'block';
+      document.getElementById('forgot-step2-form').style.display = 'none';
+      document.getElementById('forgot-subtitle').textContent = 'Reset credentials for your administrative account';
+      document.getElementById('reset-otp').value = '';
+      document.getElementById('reset-new-password').value = '';
+      document.getElementById('reset-confirm-password').value = '';
+    }
+
+    function handleRequestOTP(event) {
+      event.preventDefault();
+
+      const usernameInput = document.getElementById('reset-username');
+      const forgotCard = document.getElementById('forgot-card');
+      const submitBtn = document.getElementById('btn-otp-submit');
+      const spinner = document.getElementById('btn-otp-spinner');
+      const successIcon = document.getElementById('btn-otp-success-icon');
+      const btnText = document.getElementById('btn-otp-text');
+
+      const username = usernameInput.value.trim();
+
+      if (!username) {
+        showToast('Please enter a username');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.textContent = 'Sending...';
+
+      const API_BASE = window.location.origin.includes('localhost:3000') || window.location.origin.includes('127.0.0.1:3000')
+        ? ''
+        : 'http://localhost:3000';
+
+      fetch(API_BASE + '/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      })
+        .then(res => {
+          if (!res.ok) {
+            return res.json().then(data => { throw new Error(data.error || 'Request failed') });
+          }
+          return res.json();
+        })
+        .then(data => {
+          spinner.style.display = 'none';
+          successIcon.style.display = 'block';
+          btnText.textContent = 'Sent';
+          submitBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+          submitBtn.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)';
+
+          showToast('Verification code generated (Check Server Console)!', 'success');
+
+          setTimeout(() => {
+            // Show step 2
+            document.getElementById('forgot-step1-form').style.display = 'none';
+            document.getElementById('forgot-step2-form').style.display = 'block';
+            document.getElementById('forgot-subtitle').innerHTML = `Enter code sent to <strong>${data.email}</strong>`;
+            
+            // Restore step 1 button state
+            submitBtn.disabled = false;
+            successIcon.style.display = 'none';
+            btnText.textContent = 'Send Verification Code';
+            submitBtn.style.background = '';
+            submitBtn.style.boxShadow = '';
+          }, 1200);
+        })
+        .catch(err => {
+          forgotCard.classList.add('shake-animation');
+          setTimeout(() => forgotCard.classList.remove('shake-animation'), 400);
+          showToast(err.message);
+          submitBtn.disabled = false;
+          spinner.style.display = 'none';
+          btnText.textContent = 'Send Verification Code';
+        });
+    }
+
+    function handleVerifyOTPAndReset(event) {
+      event.preventDefault();
+
+      const usernameInput = document.getElementById('reset-username');
+      const otpInput = document.getElementById('reset-otp');
+      const passwordInput = document.getElementById('reset-new-password');
+      const confirmPasswordInput = document.getElementById('reset-confirm-password');
+      const forgotCard = document.getElementById('forgot-card');
+      const submitBtn = document.getElementById('btn-reset-submit');
+      const spinner = document.getElementById('btn-reset-spinner');
+      const successIcon = document.getElementById('btn-reset-success-icon');
+      const btnText = document.getElementById('btn-reset-text');
+
+      const username = usernameInput.value.trim();
+      const otp = otpInput.value.trim();
+      const password = passwordInput.value.trim();
+      const confirmPassword = confirmPasswordInput.value.trim();
+
+      if (!otp || otp.length !== 6) {
+        showToast('Please enter a valid 6-digit verification code');
+        return;
+      }
+
+      if (!validatePassword(password)) {
+        forgotCard.classList.add('shake-animation');
+        setTimeout(() => forgotCard.classList.remove('shake-animation'), 400);
+        showToast('Password: min 8 chars, 1 number, 1 special char');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        forgotCard.classList.add('shake-animation');
+        setTimeout(() => forgotCard.classList.remove('shake-animation'), 400);
+        showToast('Passwords do not match');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.textContent = 'Resetting...';
+
+      const API_BASE = window.location.origin.includes('localhost:3000') || window.location.origin.includes('127.0.0.1:3000')
+        ? ''
+        : 'http://localhost:3000';
+
+      fetch(API_BASE + '/api/verify-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, otp, password })
+      })
+        .then(res => {
+          if (!res.ok) {
+            return res.json().then(data => { throw new Error(data.error || 'Reset failed') });
+          }
+          return res.json();
+        })
+        .then(data => {
+          spinner.style.display = 'none';
+          successIcon.style.display = 'block';
+          btnText.textContent = 'Reset Done';
+          submitBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+          submitBtn.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)';
+
+          showToast('Password reset successful! Please login.', 'success');
+
+          setTimeout(() => {
+            clearLoginFields();
+            submitBtn.disabled = false;
+            successIcon.style.display = 'none';
+            btnText.textContent = 'Reset Password';
+            submitBtn.style.background = '';
+            submitBtn.style.boxShadow = '';
+            
+            // Switch back to login
+            switchCard('login-card');
+          }, 1500);
+        })
+        .catch(err => {
+          forgotCard.classList.add('shake-animation');
+          setTimeout(() => forgotCard.classList.remove('shake-animation'), 400);
+          showToast(err.message);
+          submitBtn.disabled = false;
+          spinner.style.display = 'none';
+          btnText.textContent = 'Reset Password';
         });
     }
   </script>

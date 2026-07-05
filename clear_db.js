@@ -18,8 +18,14 @@ async function clearDb() {
     // Truncate tables with CASCADE
     console.log('Clearing all tables...');
     await client.query(
-      'TRUNCATE TABLE assignment_products, assignments, damages, repairs, products, employees, categories, history RESTART IDENTITY CASCADE'
+      'TRUNCATE TABLE assignment_products, assignments, damages, repairs, products, employees, categories, history, users RESTART IDENTITY CASCADE'
     );
+    await client.query(
+      `INSERT INTO users (username, password, role, updated_at) 
+       VALUES ('admin', 'admin', 'admin', $1)`,
+      [Date.now()]
+    );
+    await client.query('ALTER SEQUENCE IF EXISTS employees_id_seq RESTART WITH 1');
     await client.query('ALTER SEQUENCE IF EXISTS employees_code_seq RESTART WITH 1');
     console.log('All dummy data cleared and database tables are now empty!');
   } catch (err) {

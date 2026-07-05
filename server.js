@@ -2,9 +2,17 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const pool = require('./db');
+const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Verify/update database schema dynamically
+pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(100)')
+  .then(() => console.log('Database users schema verified (email column).'))
+  .catch(err => console.error('Database migration error:', err.message));
 
 app.use(cors());
 app.use(express.json());
@@ -19,19 +27,303 @@ app.get('/', (req, res) => {
 // Authentication configuration
 const AUTH_TOKEN = 'pms-secret-auth-token-value-9988';
 
+// Rate limiting configuration for auth endpoints (20 requests per 15 minutes per IP)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  message: { error: 'Too many authentication attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// In-memory OTP store (keys: exact case username, values: { otp, expires })
+const otpStore = new Map();
+
+// Configure SMTP transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for 587
+  auth: {
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+  },
+});
+
+// Input Validation Functions
+const validateUsername = (username) => {
+  const regex = /^[a-zA-Z0-9_]{4,}$/;
+  return regex.test(username);
+};
+
+const validateEmail = (email) => {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+};
+
+const validatePassword = (password) => {
+  const regex = /^(?=.*[0-9])(?=.*[@$!%*#?&])[A-Za-z0-9@$!%*#?&]{8,}$/;
+  return regex.test(password);
+};
+
 // Endpoint for admin login
-app.post('/api/login', (req, res) => {
+app.post('/api/login', authLimiter, async (req, res) => {
   const { username, password } = req.body;
-  if (username === 'admin' && (password === 'admin' || password === 'password')) {
-    res.json({ success: true, token: AUTH_TOKEN, role: 'admin' });
-  } else {
-    res.status(401).json({ error: 'Invalid username or password' });
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+
+  try {
+    const userRes = await pool.query(
+      'SELECT * FROM users WHERE username = $1',
+      [username.trim()]
+    );
+
+    if (userRes.rows.length > 0) {
+      const user = userRes.rows[0];
+      let match = false;
+      let needsUpgrade = false;
+
+      // Check if it's hashed using bcrypt
+      if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
+        match = await bcrypt.compare(password, user.password);
+      } else {
+        // Plain text fallback matching (for legacy seeded credentials)
+        match = (user.password === password);
+        if (match) {
+          needsUpgrade = true;
+        }
+      }
+
+      if (match) {
+        if (needsUpgrade) {
+          const hashed = await bcrypt.hash(password, 10);
+          await pool.query(
+            'UPDATE users SET password = $1 WHERE id = $2',
+            [hashed, user.id]
+          );
+          console.log(`[SECURITY] Upgraded password hashing to bcrypt for user: ${user.username}`);
+        }
+        res.json({ success: true, token: AUTH_TOKEN, role: user.role });
+      } else {
+        res.status(401).json({ error: 'Invalid username or password' });
+      }
+    } else {
+      // Safe fallback static checks for default setup if DB is uninitialized/empty
+      if (username.trim() === 'admin' && (password === 'admin' || password === 'password')) {
+        const hashed = await bcrypt.hash(password, 10);
+        await pool.query(
+          'INSERT INTO users (username, password, role, updated_at, email) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING',
+          ['admin', hashed, 'admin', Date.now(), 'admin@roriri.com']
+        );
+        res.json({ success: true, token: AUTH_TOKEN, role: 'admin' });
+      } else {
+        res.status(401).json({ error: 'Invalid username or password' });
+      }
+    }
+  } catch (err) {
+    console.error('Login error:', err.message);
+    res.status(500).json({ error: 'Server error during login' });
+  }
+});
+
+// Endpoint for admin signup
+app.post('/api/signup', authLimiter, async (req, res) => {
+  // Check if signup is disabled via environment variable
+  if (process.env.ENABLE_SIGNUP === 'false') {
+    return res.status(403).json({ error: 'Registration is currently disabled.' });
+  }
+
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'Username, email, and password are required' });
+  }
+
+  const cleanUsername = username.trim();
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanPassword = password.trim();
+
+  // Validate username, email, and password complexity
+  if (!validateUsername(cleanUsername)) {
+    return res.status(400).json({
+      error: 'Username must be at least 4 characters long and contain only letters, numbers, or underscores.'
+    });
+  }
+
+  if (!validateEmail(cleanEmail)) {
+    return res.status(400).json({
+      error: 'Please enter a valid email address.'
+    });
+  }
+
+  if (!validatePassword(cleanPassword)) {
+    return res.status(400).json({
+      error: 'Password must be at least 8 characters long and contain at least one number and one special character (@$!%*#?&).'
+    });
+  }
+
+  try {
+    // Check if user already exists
+    const checkRes = await pool.query(
+      'SELECT * FROM users WHERE username = $1',
+      [cleanUsername]
+    );
+    if (checkRes.rows.length > 0) {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+
+    // Hash password
+    const hashed = await bcrypt.hash(cleanPassword, 10);
+
+    // Insert user
+    await pool.query(
+      'INSERT INTO users (username, email, password, role, updated_at) VALUES ($1, $2, $3, $4, $5)',
+      [cleanUsername, cleanEmail, hashed, 'admin', Date.now()]
+    );
+
+    res.json({ success: true, message: 'Admin registered successfully' });
+  } catch (err) {
+    console.error('Signup error:', err.message);
+    res.status(500).json({ error: 'Server error during registration' });
+  }
+});
+
+// Endpoint to request password reset (Send OTP)
+app.post('/api/forgot-password', authLimiter, async (req, res) => {
+  const { username } = req.body;
+  if (!username) {
+    return res.status(400).json({ error: 'Username is required' });
+  }
+
+  try {
+    const userRes = await pool.query(
+      'SELECT * FROM users WHERE username = $1',
+      [username.trim()]
+    );
+
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Username does not exist' });
+    }
+
+    const user = userRes.rows[0];
+    const email = user.email || `${user.username}@roriri.com`;
+
+    // Generate a 6-digit OTP code
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = Date.now() + 5 * 60 * 1000; // 5 minutes expiration
+
+    otpStore.set(username.trim(), { otp, expires });
+
+    console.log(`\n==============================================`);
+    console.log(`[OTP SERVICE] OTP for ${user.username}: ${otp}`);
+    console.log(`[OTP SERVICE] Email destination: ${email}`);
+    console.log(`==============================================\n`);
+
+    // Send actual email using SMTP transporter
+    const mailOptions = {
+      from: process.env.SMTP_FROM || `"Roriri IT Park" <${process.env.SMTP_USER || 'noreply@roriri.com'}>`,
+      to: email,
+      subject: 'Verification Code - Roriri IT Park',
+      text: `Hello ${user.username},\n\nYour password reset verification code is: ${otp}\n\nThis code is valid for 5 minutes. If you did not request this, please ignore this email.\n\nBest regards,\nRoriri System Administration`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #6C3EFF; text-align: center;">Roriri IT Park</h2>
+          <p>Hello <strong>${user.username}</strong>,</p>
+          <p>We received a request to reset your password. Use the verification code below to proceed:</p>
+          <div style="background-color: #f4f5f8; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #00D4FF; border-radius: 5px; margin: 20px 0;">
+            ${otp}
+          </div>
+          <p style="color: #555;">This code is valid for <strong>5 minutes</strong>. If you did not initiate this request, you can safely ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #888; text-align: center;">&copy; 2026 Roriri IT Park. All rights reserved.</p>
+        </div>
+      `
+    };
+
+    try {
+      if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+        await transporter.sendMail(mailOptions);
+        console.log(`[EMAIL SUCCESS] Verification email sent to ${email}`);
+      } else {
+        console.warn(`[EMAIL WARNING] SMTP credentials not set in .env. Email not sent. OTP is logged above.`);
+      }
+    } catch (mailErr) {
+      console.error(`[EMAIL ERROR] Failed to send email to ${email}:`, mailErr.message);
+    }
+
+    // Mask the email for user response (e.g. a****n@roriri.com)
+    const atIndex = email.indexOf('@');
+    let maskedEmail = email;
+    if (atIndex > 2) {
+      maskedEmail = email.substring(0, 1) + '*'.repeat(atIndex - 2) + email.substring(atIndex - 1);
+    }
+
+    res.json({ success: true, message: 'Verification code generated', email: maskedEmail });
+  } catch (err) {
+    console.error('Forgot password error:', err.message);
+    res.status(500).json({ error: 'Server error during password reset request' });
+  }
+});
+
+// Endpoint to verify OTP and reset password
+app.post('/api/verify-reset', authLimiter, async (req, res) => {
+  const { username, otp, password } = req.body;
+  if (!username || !otp || !password) {
+    return res.status(400).json({ error: 'Username, verification code, and new password are required' });
+  }
+
+  const cleanUsername = username.trim();
+  const cleanPassword = password.trim();
+
+  // Validate password complexity
+  if (!validatePassword(cleanPassword)) {
+    return res.status(400).json({
+      error: 'Password must be at least 8 characters long and contain at least one number and one special character (@$!%*#?&).'
+    });
+  }
+
+  const record = otpStore.get(cleanUsername);
+  if (!record) {
+    return res.status(400).json({ error: 'No verification code found for this user. Please request one.' });
+  }
+
+  if (Date.now() > record.expires) {
+    otpStore.delete(cleanUsername);
+    return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+  }
+
+  if (record.otp !== otp.trim()) {
+    return res.status(400).json({ error: 'Invalid verification code' });
+  }
+
+  try {
+    const hashed = await bcrypt.hash(cleanPassword, 10);
+    const updateRes = await pool.query(
+      'UPDATE users SET password = $1, updated_at = $2 WHERE username = $3 RETURNING *',
+      [hashed, Date.now(), cleanUsername]
+    );
+
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    otpStore.delete(cleanUsername);
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (err) {
+    console.error('Password reset verification error:', err.message);
+    res.status(500).json({ error: 'Server error during password reset' });
   }
 });
 
 // Middleware to authenticate /api requests
 const authenticateAPI = (req, res, next) => {
-  if (req.path === '/api/login') {
+  const whitelisted = [
+    '/api/login',
+    '/api/signup',
+    '/api/forgot-password',
+    '/api/verify-reset'
+  ];
+  if (whitelisted.includes(req.path)) {
     return next();
   }
   const authHeader = req.headers['authorization'];
@@ -53,7 +345,7 @@ app.get('/api/db', async (req, res) => {
     const assignments = await pool.query(`
       SELECT a.*, e.name AS employee_name, e.dept
       FROM assignments a
-      LEFT JOIN employees e ON a.employee_id = e.code
+      LEFT JOIN employees e ON a.employee_id = e.id
     `);
     const damages = await pool.query(`
       SELECT d.*, p.code AS product_code, p.name AS product_name
@@ -121,7 +413,7 @@ app.get('/api/db', async (req, res) => {
     }));
 
     const employeesList = employees.rows.map(e => ({
-      id: e.code,
+      id: e.id,
       code: e.code,
       name: e.name,
       dept: e.dept || '',
@@ -196,19 +488,47 @@ app.get('/api/db', async (req, res) => {
 // ==========================================
 app.post('/api/employees', async (req, res) => {
   const { name, dept, role, email, phone, blood, status, joinDate, resignDate, address } = req.body;
-  if (!name || !joinDate) {
-    return res.status(400).json({ error: 'Name and Joining Date are required.' });
+  if (!name || !joinDate || !address || !dept || !role || !email || !blood || !status) {
+    return res.status(400).json({ error: 'Name, Department, Role, Email, Blood Group, Status, Joining Date, and Address are required.' });
   }
+
+  // Validate Joining Date is not in the future
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (joinDate > todayStr) {
+    return res.status(400).json({ error: 'Joining Date cannot be in the future.' });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const seqRes = await client.query("SELECT nextval('employees_code_seq')");
-    const nextCode = String(seqRes.rows[0].nextval);
+
+    // Uniqueness check for email
+    if (email) {
+      const emailCheck = await client.query('SELECT id FROM employees WHERE LOWER(email) = LOWER($1)', [email.trim()]);
+      if (emailCheck.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Email address is already registered to another employee.' });
+      }
+    }
+
+    // Uniqueness check for phone
+    if (phone) {
+      const phoneCheck = await client.query('SELECT id FROM employees WHERE phone = $1', [phone.trim()]);
+      if (phoneCheck.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Mobile number is already registered to another employee.' });
+      }
+    }
+
+    const seqRes = await client.query("SELECT nextval('employees_id_seq')");
+    const nextId = parseInt(seqRes.rows[0].nextval);
+    const nextCode = 'EMP' + String(nextId).padStart(3, '0');
 
     const result = await client.query(
-      `INSERT INTO employees (code, name, dept, role, email, phone, blood, status, join_date, resign_date, address, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING code`,
+      `INSERT INTO employees (id, code, name, dept, role, email, phone, blood, status, join_date, resign_date, address, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
       [
+        nextId,
         nextCode, 
         name, 
         dept || null, 
@@ -224,7 +544,7 @@ app.post('/api/employees', async (req, res) => {
       ]
     );
     await client.query('COMMIT');
-    res.json({ success: true, id: result.rows[0].code });
+    res.json({ success: true, id: result.rows[0].id });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
@@ -237,14 +557,37 @@ app.post('/api/employees', async (req, res) => {
 app.put('/api/employees/:id', async (req, res) => {
   const { id } = req.params;
   const { code, name, dept, role, email, phone, blood, status, joinDate, resignDate, address } = req.body;
-  if (!name || !joinDate) {
-    return res.status(400).json({ error: 'Name and Joining Date are required.' });
+  if (!name || !joinDate || !address || !dept || !role || !email || !blood || !status) {
+    return res.status(400).json({ error: 'Name, Department, Role, Email, Blood Group, Status, Joining Date, and Address are required.' });
   }
+
+  // Validate Joining Date is not in the future
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (joinDate > todayStr) {
+    return res.status(400).json({ error: 'Joining Date cannot be in the future.' });
+  }
+
   try {
+    // Uniqueness check for email
+    if (email) {
+      const emailCheck = await pool.query('SELECT id FROM employees WHERE LOWER(email) = LOWER($1) AND id != $2', [email.trim(), id]);
+      if (emailCheck.rows.length > 0) {
+        return res.status(400).json({ error: 'Email address is already registered to another employee.' });
+      }
+    }
+
+    // Uniqueness check for phone
+    if (phone) {
+      const phoneCheck = await pool.query('SELECT id FROM employees WHERE phone = $1 AND id != $2', [phone.trim(), id]);
+      if (phoneCheck.rows.length > 0) {
+        return res.status(400).json({ error: 'Mobile number is already registered to another employee.' });
+      }
+    }
+
     await pool.query(
       `UPDATE employees 
        SET code = $1, name = $2, dept = $3, role = $4, email = $5, phone = $6, blood = $7, status = $8, join_date = $9, resign_date = $10, address = $11, updated_at = $12 
-       WHERE code = $13`,
+       WHERE id = $13`,
       [
         code, 
         name, 
@@ -271,7 +614,7 @@ app.put('/api/employees/:id', async (req, res) => {
 app.delete('/api/employees/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    await pool.query('DELETE FROM employees WHERE code = $1', [id]);
+    await pool.query('DELETE FROM employees WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -284,6 +627,10 @@ app.delete('/api/employees/:id', async (req, res) => {
 // ==========================================
 app.post('/api/categories', async (req, res) => {
   const { name } = req.body;
+  const charRegex = /^[a-zA-Z\s]+$/;
+  if (!name || !charRegex.test(name)) {
+    return res.status(400).json({ error: 'Category name is required and must contain only letters and spaces.' });
+  }
   try {
     await pool.query('INSERT INTO categories (name, updated_at) VALUES ($1, $2)', [name, Date.now()]);
     res.json({ success: true });
@@ -296,8 +643,12 @@ app.post('/api/categories', async (req, res) => {
 app.put('/api/categories/:name', async (req, res) => {
   const oldName = req.params.name;
   const { name } = req.body;
+  const charRegex = /^[a-zA-Z\s]+$/;
+  if (!name || !charRegex.test(name)) {
+    return res.status(400).json({ error: 'Category name is required and must contain only letters and spaces.' });
+  }
   try {
-    if (name && name !== oldName) {
+    if (name !== oldName) {
       await pool.query(
         'UPDATE categories SET name = $1, updated_at = $2 WHERE name = $3',
         [name, Date.now(), oldName]
@@ -326,11 +677,23 @@ app.delete('/api/categories/:name', async (req, res) => {
 // ==========================================
 app.post('/api/products', async (req, res) => {
   const { code, name, cat, purchaseDate, qty, status } = req.body;
+  if (!qty) {
+    return res.status(400).json({ error: 'Quantity is required.' });
+  }
+  const insertQty = parseInt(qty);
+  if (isNaN(insertQty) || insertQty < 1) {
+    return res.status(400).json({ error: 'Quantity must be a positive number.' });
+  }
+  if (!purchaseDate) {
+    return res.status(400).json({ error: 'Purchase Date is required.' });
+  }
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (purchaseDate > todayStr) {
+    return res.status(400).json({ error: 'Purchase Date cannot be in the future.' });
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
-    const insertQty = parseInt(qty) || 1;
     
     // Helper function to parse and generate sequential codes
     const generateSequentialCodes = (startCode, count) => {
@@ -388,12 +751,26 @@ app.post('/api/products', async (req, res) => {
 app.put('/api/products/:id', async (req, res) => {
   const { id } = req.params;
   const { code, name, cat, purchaseDate, qty, status } = req.body;
+  if (!qty) {
+    return res.status(400).json({ error: 'Quantity is required.' });
+  }
+  const updateQty = parseInt(qty);
+  if (isNaN(updateQty) || updateQty < 1) {
+    return res.status(400).json({ error: 'Quantity must be a positive number.' });
+  }
+  if (!purchaseDate) {
+    return res.status(400).json({ error: 'Purchase Date is required.' });
+  }
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (purchaseDate > todayStr) {
+    return res.status(400).json({ error: 'Purchase Date cannot be in the future.' });
+  }
   try {
     await pool.query(
       `UPDATE products 
        SET code = $1, name = $2, cat = $3, purchase_date = $4, qty = $5, status = $6, updated_at = $7 
        WHERE id = $8`,
-      [code, name, cat, purchaseDate || null, qty || 1, status, Date.now(), id]
+      [code, name, cat, purchaseDate || null, updateQty, status, Date.now(), id]
     );
     res.json({ success: true });
   } catch (err) {
@@ -415,6 +792,12 @@ app.delete('/api/products/:id', async (req, res) => {
 
 app.post('/api/accessories', async (req, res) => {
   const { name, cat, itemType, brand, qty, date, status } = req.body;
+  if (date) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (date > todayStr) {
+      return res.status(400).json({ error: 'Purchase Date cannot be in the future.' });
+    }
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -451,6 +834,12 @@ app.post('/api/accessories', async (req, res) => {
 // ==========================================
 app.post('/api/assignments', async (req, res) => {
   const { employeeId, employeeName, dept, category, productIds, productNames, productCodes, assignedDate } = req.body;
+  if (assignedDate) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (assignedDate > todayStr) {
+      return res.status(400).json({ error: 'Assigned Date cannot be in the future.' });
+    }
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -492,6 +881,12 @@ app.post('/api/assignments', async (req, res) => {
 app.put('/api/assignments/:id', async (req, res) => {
   const { id } = req.params;
   const { employeeId, employeeName, dept, productIds, assignedDate } = req.body;
+  if (assignedDate) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (assignedDate > todayStr) {
+      return res.status(400).json({ error: 'Assigned Date cannot be in the future.' });
+    }
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -620,6 +1015,12 @@ app.delete('/api/assignments/:id', async (req, res) => {
 // ==========================================
 app.post('/api/damages', async (req, res) => {
   const { productId, status, date, by, notes } = req.body;
+  if (date) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (date > todayStr) {
+      return res.status(400).json({ error: 'Date Reported cannot be in the future.' });
+    }
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -669,6 +1070,16 @@ app.delete('/api/damages/:id', async (req, res) => {
 // ==========================================
 app.post('/api/repairs', async (req, res) => {
   const { productId, center, contact, takenBy, dateSent, expectedDate, status, notes } = req.body;
+  if (!center || !takenBy) {
+    return res.status(400).json({ error: 'Repair Center and Taken By Person are required.' });
+  }
+  if (!dateSent) {
+    return res.status(400).json({ error: 'Date Sent is required.' });
+  }
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (dateSent > todayStr) {
+    return res.status(400).json({ error: 'Date Sent cannot be in the future.' });
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -761,21 +1172,53 @@ app.delete('/api/repairs/:id', async (req, res) => {
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT} - [v2 - Mapped Products]`);
   try {
+    // 0. Create users table and seed default admin if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        password VARCHAR(100) NOT NULL,
+        role VARCHAR(50) DEFAULT 'admin',
+        updated_at BIGINT NOT NULL
+      )
+    `);
+    console.log('Successfully verified/created users table.');
+    
+    const usersRes = await pool.query('SELECT 1 FROM users WHERE username = $1', ['admin']);
+    if (usersRes.rowCount === 0) {
+      await pool.query(
+        `INSERT INTO users (username, password, role, updated_at) 
+         VALUES ($1, $2, $3, $4)`,
+        ['admin', 'admin', 'admin', Date.now()]
+      );
+      console.log('Default admin seeded.');
+    }
+  } catch (err) {
+    console.error('Error initializing users table:', err.message);
+  }
+
+  try {
     // 1. Create the sequence if it does not exist
     await pool.query("CREATE SEQUENCE IF NOT EXISTS employees_code_seq START WITH 1");
     console.log("Successfully verified/created employees_code_seq sequence.");
 
-    // 2. Query all existing employees to check and migrate their codes
+    // 2. Query all existing employees to check and migrate their codes to EMPxxx format
     const empsRes = await pool.query("SELECT code FROM employees ORDER BY code");
     const updates = [];
     const usedInts = new Set();
     
-    // First pass: identify already numeric codes
+    // First pass: identify existing numeric values from EMPxxx or clean numeric formats
     for (const row of empsRes.rows) {
       const trimmed = (row.code || '').trim();
-      const val = parseInt(trimmed, 10);
-      if (!isNaN(val) && String(val) === trimmed) {
+      const match = trimmed.match(/^EMP0*(\d+)$/i);
+      if (match) {
+        const val = parseInt(match[1], 10);
         usedInts.add(val);
+      } else {
+        const val = parseInt(trimmed, 10);
+        if (!isNaN(val) && String(val) === trimmed) {
+          usedInts.add(val);
+        }
       }
     }
     
@@ -789,31 +1232,29 @@ app.listen(PORT, async () => {
       return nextAvailableInt;
     };
     
-    // Second pass: migrate non-numeric codes
+    // Second pass: migrate codes that are not in the correct EMPxxx format
     for (const row of empsRes.rows) {
       const trimmed = (row.code || '').trim();
-      const val = parseInt(trimmed, 10);
-      
-      // If it's already a clean numeric string, keep it
-      if (!isNaN(val) && String(val) === trimmed) {
+      const isCorrectFormat = /^EMP\d{3,}$/.test(trimmed);
+      if (isCorrectFormat) {
         continue;
       }
       
-      // Try parsing from standard formats like EMP001
+      let valInt;
       const match = trimmed.match(/^EMP0*(\d+)$/i);
-      let newInt;
       if (match) {
-        newInt = parseInt(match[1], 10);
-        if (usedInts.has(newInt)) {
-          newInt = getNextInt();
-        } else {
-          usedInts.add(newInt);
-        }
+        valInt = parseInt(match[1], 10);
       } else {
-        newInt = getNextInt();
+        const parsed = parseInt(trimmed, 10);
+        if (!isNaN(parsed) && String(parsed) === trimmed) {
+          valInt = parsed;
+        } else {
+          valInt = getNextInt();
+        }
       }
       
-      updates.push({ oldCode: row.code, newCode: String(newInt) });
+      const newCode = 'EMP' + String(valInt).padStart(3, '0');
+      updates.push({ oldCode: row.code, newCode: newCode });
     }
     
     // Run updates in a transaction so foreign key updates cascade atomically
@@ -826,7 +1267,7 @@ app.listen(PORT, async () => {
           await client.query('UPDATE employees SET code = $1 WHERE code = $2', [update.newCode, update.oldCode]);
         }
         await client.query('COMMIT');
-        console.log(`Successfully migrated ${updates.length} employee codes to numeric format.`);
+        console.log(`Successfully migrated ${updates.length} employee codes to EMPxxx format.`);
       } catch (err) {
         await client.query('ROLLBACK');
         console.error('Error migrating employee codes in transaction:', err);
@@ -839,15 +1280,19 @@ app.listen(PORT, async () => {
     const finalEmpsRes = await pool.query("SELECT code FROM employees");
     let maxVal = 0;
     for (const row of finalEmpsRes.rows) {
-      const val = parseInt(row.code, 10);
-      if (!isNaN(val) && val > maxVal) {
-        maxVal = val;
+      const trimmed = (row.code || '').trim();
+      const match = trimmed.match(/^EMP0*(\d+)$/i);
+      if (match) {
+        const val = parseInt(match[1], 10);
+        if (val > maxVal) {
+          maxVal = val;
+        }
       }
     }
     if (maxVal > 0) {
       await pool.query(`SELECT setval('employees_code_seq', ${maxVal})`);
     }
-    console.log(`Employee code sequence synced. Next code will be ${maxVal + 1}`);
+    console.log(`Employee code sequence synced. Next code will be EMP${String(maxVal + 1).padStart(3, '0')}`);
   } catch (err) {
     console.error('Error initializing/migrating employee codes on server startup:', err.message);
   }

@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS employees CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS history CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 DROP SEQUENCE IF EXISTS employees_code_seq CASCADE;
 
 CREATE SEQUENCE IF NOT EXISTS employees_code_seq START WITH 1;
@@ -22,7 +23,8 @@ CREATE TABLE IF NOT EXISTS categories (
 
 -- 2. Employees Table
 CREATE TABLE IF NOT EXISTS employees (
-    code VARCHAR(50) PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(100) NOT NULL,
     dept VARCHAR(100),
     role VARCHAR(100),
@@ -51,7 +53,7 @@ CREATE TABLE IF NOT EXISTS products (
 -- 4. Assignments Table (3NF - Removed redundant employee_name and dept columns)
 CREATE TABLE IF NOT EXISTS assignments (
     id SERIAL PRIMARY KEY,
-    employee_id VARCHAR(50) REFERENCES employees(code) ON UPDATE CASCADE ON DELETE SET NULL,
+    employee_id INT REFERENCES employees(id) ON UPDATE CASCADE ON DELETE SET NULL,
     assigned_date DATE NOT NULL,
     return_date VARCHAR(100), -- Storing custom local formatted string as in existing code
     units INT DEFAULT 1,
@@ -103,3 +105,18 @@ CREATE TABLE IF NOT EXISTS history (
     notes TEXT,
     updated_at BIGINT NOT NULL
 );
+
+-- 9. Users Table (Admin authentication)
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(100),
+    password VARCHAR(100) NOT NULL,
+    role VARCHAR(50) DEFAULT 'admin',
+    updated_at BIGINT NOT NULL
+);
+
+-- Seed default administrator
+INSERT INTO users (username, email, password, role, updated_at)
+VALUES ('admin', 'admin@roriri.com', 'admin', 'admin', EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+ON CONFLICT (username) DO NOTHING;

@@ -84,8 +84,8 @@ function getFilteredEmployees() {
 
 function getFilteredProducts() {
   return db.products.filter(p => {
-    // Exclude damaged/replaced products and products with damage reports from the main product table
-    if (p.status === 'Damaged' || p.status === 'Replaced' || db.damages.some(d => d.productId === p.id)) return false;
+    // Exclude damaged/replaced products, products with damage reports, and products under repair from the main product table
+    if (p.status === 'Damaged' || p.status === 'Replaced' || p.status === 'Repair' || db.damages.some(d => d.productId === p.id)) return false;
 
     const query = tableState.productQuery;
     const matchesQuery = !query || [p.code, p.name, p.cat]
@@ -270,15 +270,31 @@ function navigate(page) {
   };
   document.getElementById('page-title').textContent = titles[page] || page;
 
-  // Toggle Categories search box in topbar
-  const topbarCatSearch = document.getElementById('topbar-cat-search-wrapper');
-  if (topbarCatSearch) {
-    if (page === 'categories') {
-      topbarCatSearch.style.display = 'block';
+
+
+  // Toggle Logout button in topbar (only visible on dashboard)
+  const topbarLogout = document.getElementById('topbar-logout-btn');
+  if (topbarLogout) {
+    if (page === 'dashboard') {
+      topbarLogout.style.display = 'flex';
     } else {
-      topbarCatSearch.style.display = 'none';
+      topbarLogout.style.display = 'none';
     }
   }
+
+  // Toggle Admin profile in topbar (only visible on dashboard)
+  const topbarProfile = document.getElementById('topbar-user-profile');
+  if (topbarProfile) {
+    if (page === 'dashboard') {
+      topbarProfile.style.display = 'flex';
+    } else {
+      topbarProfile.style.display = 'none';
+    }
+  }
+
+
+
+
 
   // Clear global search input value and tableState queries when navigating
   tableState.employeeQuery = '';
@@ -344,12 +360,14 @@ function renderPage(page) {
 
 // ===================== DASHBOARD =====================
 function renderDashboard() {
-  const total = db.products.length;
-  const assigned = db.products.filter(p => p.status === 'Assigned').length;
-  const available = db.products.filter(p => p.status === 'Available').length;
-  const damaged = db.products.filter(p => p.status === 'Damaged').length;
-  const repair = db.products.filter(p => p.status === 'Repair').length;
-  const replaced = db.products.filter(p => p.status === 'Replaced').length;
+  const mainProducts = db.products.filter(p => p.cat !== 'Accessories');
+
+  const total = mainProducts.length;
+  const assigned = mainProducts.filter(p => p.status === 'Assigned').length;
+  const available = mainProducts.filter(p => p.status === 'Available').length;
+  const damaged = mainProducts.filter(p => p.status === 'Damaged').length;
+  const repair = mainProducts.filter(p => p.status === 'Repair').length;
+  const replaced = mainProducts.filter(p => p.status === 'Replaced').length;
   const emps = db.employees.length;
 
   animateCount('stat-total', total);
@@ -392,10 +410,11 @@ function renderEmployees(page = tableState.employees) {
 
   tbody.innerHTML = pageItems.map(e =>
     `<tr>
+      <td><code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11px;">${e.code}</code></td>
       <td>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="avatar" style="background:${COLORS[Array.from(e.code || '').reduce((acc, char) => acc + char.charCodeAt(0), 0) % COLORS.length]}">${e.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
-          <a href="#" onclick="viewEmployee('${e.id}'); return false;" style="font-weight: 500; color: var(--primary); text-decoration: none;">
+          <a href="#" onclick="viewEmployee(${e.id}); return false;" style="font-weight: 500; color: var(--primary); text-decoration: none;">
             ${e.name}
           </a>
         </div>
@@ -407,13 +426,13 @@ function renderEmployees(page = tableState.employees) {
       <td>${e.blood}</td>
       <td>
         <div style="display:flex;gap:4px;">
-          <button class="btn-icon view" title="View" onclick="viewEmployee('${e.id}')">
+          <button class="btn-icon view" title="View" onclick="viewEmployee(${e.id})">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
-          <button class="btn-icon edit" title="Edit" onclick="editEmployee('${e.id}')">
+          <button class="btn-icon edit" title="Edit" onclick="editEmployee(${e.id})">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
-          <button class="btn-icon del" title="Delete" onclick="deleteEmployee('${e.id}')">
+          <button class="btn-icon del" title="Delete" onclick="deleteEmployee(${e.id})">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
           </button>
         </div>
@@ -426,11 +445,12 @@ function renderEmployees(page = tableState.employees) {
 }
 
 function viewEmployee(id) {
-  const e = db.employees.find(x => x.id === id);
+  const idNum = parseInt(id);
+  const e = db.employees.find(x => x.id === idNum);
   if (!e) return;
   
   // Filter active assignments (current products)
-  const currentProds = db.assignments.filter(a => a.employeeId === id && !a.returnDate);
+  const currentProds = db.assignments.filter(a => a.employeeId === idNum && !a.returnDate);
   
   // Filter all history events associated with this employee's name
   const empHistory = db.history
@@ -536,16 +556,18 @@ function openEmployeeModal() {
   document.getElementById('ef-email').value = '';
   document.getElementById('ef-phone').value = '';
   document.getElementById('ef-blood').value = '';
-  document.getElementById('ef-status').value = 'Active';
+  document.getElementById('ef-status').value = '';
   document.getElementById('ef-join').value = '';
+  document.getElementById('ef-join').max = today();
   document.getElementById('ef-addr').value = '';
   openModal('emp-modal');
 }
 
 function editEmployee(id) {
-  const e = db.employees.find(x => x.id === id);
+  const idNum = parseInt(id);
+  const e = db.employees.find(x => x.id === idNum);
   if (!e) return;
-  editingId.emp = id;
+  editingId.emp = idNum;
   document.getElementById('emp-modal-title').textContent = 'Edit Employee';
   document.getElementById('ef-code-group').style.display = 'none';
   document.getElementById('ef-code').value = e.code;
@@ -559,6 +581,7 @@ function editEmployee(id) {
   document.getElementById('ef-blood').value = e.blood;
   document.getElementById('ef-status').value = e.status;
   document.getElementById('ef-join').value = e.joinDate;
+  document.getElementById('ef-join').max = today();
   const efResign = document.getElementById('ef-resign');
   if (efResign) {
     efResign.value = e.resignDate;
@@ -581,31 +604,39 @@ function saveEmployee() {
   const dept = document.getElementById('ef-dept').value.trim();
   const role = document.getElementById('ef-role').value.trim();
   const email = document.getElementById('ef-email').value.trim();
+  const blood = document.getElementById('ef-blood').value.trim();
   const status = document.getElementById('ef-status').value;
 
   if (editingId.emp && !code) { showToast('Code is required.', 'error'); return; }
   if (!name) { showToast('Name is required.', 'error'); return; }
+  if (!dept) { showToast('Department is required.', 'error'); return; }
+  if (!role) { showToast('Role is required.', 'error'); return; }
+  if (!email) { showToast('Email is required.', 'error'); return; }
+  if (!blood) { showToast('Blood Group is required.', 'error'); return; }
 
   const charRegex = /^[a-zA-Z\s]+$/;
   if (!charRegex.test(name)) {
     showToast('Full Name must contain only characters.', 'error');
     return;
   }
-  if (dept && !charRegex.test(dept)) {
+  if (!charRegex.test(dept)) {
     showToast('Department must contain only characters.', 'error');
     return;
   }
-  if (role && !charRegex.test(role)) {
+  if (!charRegex.test(role)) {
     showToast('Role must contain only characters.', 'error');
     return;
   }
 
-  if (email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      showToast('Please enter a valid email address.', 'error');
-      return;
-    }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showToast('Please enter a valid email address.', 'error');
+    return;
+  }
+  const emailDup = db.employees.some(x => x.email && x.email.toLowerCase() === email.toLowerCase() && x.id !== editingId.emp);
+  if (emailDup) {
+    showToast('Email address is already registered to another employee.', 'error');
+    return;
   }
 
   if (!status) {
@@ -618,10 +649,20 @@ function saveEmployee() {
     showToast('Phone number must be exactly 10 digits.', 'error');
     return;
   }
+  const phoneDup = db.employees.some(x => x.phone && x.phone === phone && x.id !== editingId.emp);
+  if (phoneDup) {
+    showToast('Mobile number is already registered to another employee.', 'error');
+    return;
+  }
 
   const joinDate = document.getElementById('ef-join').value;
   if (!joinDate) {
     showToast('Joining Date is required.', 'error');
+    return;
+  }
+  const todayStr = today();
+  if (joinDate > todayStr) {
+    showToast('Joining Date cannot be in the future.', 'error');
     return;
   }
 
@@ -635,14 +676,20 @@ function saveEmployee() {
     resignDate = (existing && existing.resignDate) ? existing.resignDate : today();
   }
 
+  const address = document.getElementById('ef-addr').value.trim();
+  if (!address) {
+    showToast('Address is required.', 'error');
+    return;
+  }
+
   const emp = {
     code, name, dept, role, email,
     phone,
-    blood: document.getElementById('ef-blood').value.trim(),
+    blood,
     status,
     joinDate,
     resignDate,
-    address: document.getElementById('ef-addr').value.trim()
+    address
   };
 
   const url = editingId.emp ? `/api/employees/${editingId.emp}` : '/api/employees';
@@ -653,8 +700,11 @@ function saveEmployee() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(emp)
   })
-  .then(res => {
-    if (!res.ok) throw new Error('API save employee error');
+  .then(async res => {
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to save employee.');
+    }
     return res.json();
   })
   .then(data => {
@@ -662,13 +712,14 @@ function saveEmployee() {
   })
   .catch(err => {
     console.error(err);
-    showToast('Failed to save employee.', 'error');
+    showToast(err.message, 'error');
   });
 }
 
 function deleteEmployee(id) {
+  const idNum = parseInt(id);
   if (!confirm('Delete this employee?')) return;
-  fetch(`/api/employees/${id}`, { method: 'DELETE' })
+  fetch(`/api/employees/${idNum}`, { method: 'DELETE' })
     .then(res => {
       if (!res.ok) throw new Error('API delete error');
       reloadWithToast('Employee deleted.', 'success');
@@ -756,6 +807,11 @@ function editCategory(catName) {
 function saveCategory() {
   const name = document.getElementById('cf-name').value.trim();
   if (!name) { showToast('Category name required.', 'error'); return; }
+  const charRegex = /^[a-zA-Z\s]+$/;
+  if (!charRegex.test(name)) {
+    showToast('Category name must contain only letters and spaces.', 'error');
+    return;
+  }
 
   const url = editingId.cat !== null ? `/api/categories/${encodeURIComponent(editingId.cat)}` : '/api/categories';
   const method = editingId.cat !== null ? 'PUT' : 'POST';
@@ -916,7 +972,8 @@ function openAddAccessoryModal() {
   document.getElementById('acc-name').value = '';
   document.getElementById('acc-brand').value = '';
   document.getElementById('acc-qty').value = '1';
-  document.getElementById('acc-date').value = today();
+  document.getElementById('acc-date').value = '';
+  document.getElementById('acc-date').max = today();
   document.getElementById('acc-status').value = 'Available';
   openModal('accessory-modal');
 }
@@ -934,23 +991,31 @@ function saveAccessoryItem() {
 
   if (!cat) { showToast('Please select a category.', 'error'); return; }
   if (!name) { showToast('Item name is required.', 'error'); return; }
+  if (!purchaseDate) { showToast('Purchase Date is required.', 'error'); return; }
+  if (purchaseDate > today()) { showToast('Purchase Date cannot be in the future.', 'error'); return; }
 
-  const body = { name, cat, qty, date: purchaseDate || today(), status };
+  const body = { name, cat, qty, date: purchaseDate, status };
 
   fetch('/api/accessories', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   })
-  .then(res => {
-    if (!res.ok) throw new Error('API save accessory error');
+  .then(async res => {
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to add accessory.');
+    }
+    return res.json();
+  })
+  .then(data => {
     closeModal('accessory-modal');
     showToast(`Accessory "${name}" added successfully!`, 'success');
     window.location.reload();
   })
   .catch(err => {
     console.error(err);
-    showToast('Failed to add accessory.', 'error');
+    showToast(err.message, 'error');
   });
 }
 
@@ -1179,6 +1244,7 @@ function editProduct(id) {
   onProductCategoryChange();
 
   document.getElementById('pf-date').value = p.purchaseDate || '';
+  document.getElementById('pf-date').max = today();
   const pfQty = document.getElementById('pf-qty');
   if (pfQty) {
     pfQty.value = p.qty || '';
@@ -1212,6 +1278,7 @@ function openProductModal() {
   document.getElementById('pf-cat').value = '';
   
   document.getElementById('pf-date').value = '';
+  document.getElementById('pf-date').max = today();
   const pfQty = document.getElementById('pf-qty');
   if (pfQty) {
     pfQty.value = '';
@@ -1240,14 +1307,24 @@ function saveProduct() {
   }
 
   const pfQty = document.getElementById('pf-qty');
+  if (pfQty) {
+    const qtyVal = pfQty.value.trim();
+    if (!qtyVal) { showToast('Quantity is required.', 'error'); return; }
+    const qtyInt = parseInt(qtyVal);
+    if (isNaN(qtyInt) || qtyInt < 1) { showToast('Quantity must be a positive number.', 'error'); return; }
+  }
   const pfStatus = document.getElementById('pf-status');
+
+  const purchaseDate = document.getElementById('pf-date').value;
+  if (!purchaseDate) { showToast('Purchase Date is required.', 'error'); return; }
+  if (purchaseDate > today()) { showToast('Purchase Date cannot be in the future.', 'error'); return; }
 
   const prod = {
     code,
     name,
     cat,
-    purchaseDate: document.getElementById('pf-date').value,
-    qty: pfQty ? (parseInt(pfQty.value) || 1) : (existing ? (existing.qty || 1) : 1),
+    purchaseDate,
+    qty: pfQty ? parseInt(pfQty.value) : (existing ? (existing.qty || 1) : 1),
     status: pfStatus ? (pfStatus.value || 'Available') : (existing ? (existing.status || 'Available') : 'Available')
   };
 
@@ -1259,13 +1336,19 @@ function saveProduct() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(prod)
   })
-  .then(res => {
-    if (!res.ok) throw new Error('API save product error');
+  .then(async res => {
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to save product.');
+    }
+    return res.json();
+  })
+  .then(data => {
     reloadWithToast(editingId.prod ? 'Product updated.' : 'Product added successfully.', 'success');
   })
   .catch(err => {
     console.error(err);
-    showToast('Failed to save product.', 'error');
+    showToast(err.message, 'error');
   });
 }
 
@@ -1293,8 +1376,10 @@ function suggestEmployees(query) {
     .filter(a => !a.returnDate)
     .map(a => a.employeeId);
 
+  const cleanQuery = (query || '').trim().toLowerCase();
+
   let filtered = [];
-  if (!query.trim()) {
+  if (!cleanQuery) {
     filtered = db.employees.filter(e =>
       e.status === 'Active' &&
       !activeEmployeeIdsWithProducts.includes(e.id)
@@ -1302,14 +1387,14 @@ function suggestEmployees(query) {
   } else {
     filtered = db.employees.filter(e =>
       e.status === 'Active' &&
-      e.name.toLowerCase().includes(query.toLowerCase())
+      e.name.toLowerCase().includes(cleanQuery)
     );
   }
 
   if (filtered.length === 0) {
     container.innerHTML = '<div class="autocomplete-suggestion" style="color:var(--text-secondary);cursor:default;">No active employees found</div>';
     container.style.display = 'block';
-    if (!query.trim()) {
+    if (!cleanQuery) {
       hiddenInput.value = '';
     }
     return;
@@ -1614,12 +1699,14 @@ function openAssignModal() {
 
   onAssignCategoryChange();
 
-  document.getElementById('af-date').value = today();
+  document.getElementById('af-date').value = '';
+  document.getElementById('af-date').max = today();
   openModal('assign-modal');
 }
 
 function editAssignment(id) {
-  const a = db.assignments.find(x => x.id === id);
+  const idNum = parseInt(id);
+  const a = db.assignments.find(x => x.id === idNum);
   if (!a) return;
 
   editingId.assign = id;
@@ -1682,6 +1769,7 @@ function editAssignment(id) {
   onAssignTypeChange();
 
   document.getElementById('af-date').value = a.assignedDate;
+  document.getElementById('af-date').max = today();
   
   const footerBtn = document.querySelector('#assign-modal .modal-footer .btn-primary');
   if (footerBtn) footerBtn.textContent = 'Save';
@@ -1692,7 +1780,7 @@ function editAssignment(id) {
 function saveAssignment() {
   const empId = document.getElementById('af-emp').value;
   if (!empId) { showToast('Please search and select an employee from suggestions.', 'error'); return; }
-  const emp = db.employees.find(e => e.id === empId);
+  const emp = db.employees.find(e => e.id === parseInt(empId));
   if (!emp) { showToast('Selected employee not found.', 'error'); return; }
 
   const category = document.getElementById('af-cat').value;
@@ -1700,7 +1788,9 @@ function saveAssignment() {
 
   if (selectedAssignProducts.length === 0) { showToast('Please select at least one product.', 'error'); return; }
 
-  const assignedDate = document.getElementById('af-date').value || today();
+  const assignedDate = document.getElementById('af-date').value;
+  if (!assignedDate) { showToast('Assigned Date is required.', 'error'); return; }
+  if (assignedDate > today()) { showToast('Assigned Date cannot be in the future.', 'error'); return; }
   
   const prodIds = selectedAssignProducts.map(p => p.id);
   const prodNames = selectedAssignProducts.map(p => p.name).join(', ');
@@ -1726,8 +1816,14 @@ function saveAssignment() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   })
-  .then(res => {
-    if (!res.ok) throw new Error('API save assignment error');
+  .then(async res => {
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to save assignment.');
+    }
+    return res.json();
+  })
+  .then(data => {
     const msg = editingId.assign 
       ? 'Assignment updated successfully!' 
       : `${emp.name} assigned successfully`;
@@ -1735,12 +1831,13 @@ function saveAssignment() {
   })
   .catch(err => {
     console.error(err);
-    showToast('Failed to save assignment.', 'error');
+    showToast(err.message, 'error');
   });
 }
 
 function returnProduct(id) {
-  const a = db.assignments.find(x => x.id === id);
+  const idNum = parseInt(id);
+  const a = db.assignments.find(x => x.id === idNum);
   if (!a) return;
   if (!confirm(`Mark "${a.productName}" as returned?`)) return;
 
@@ -1760,8 +1857,9 @@ function returnProduct(id) {
 }
 
 function deleteAssignment(id) {
+  const idNum = parseInt(id);
   if (!confirm('Remove this assignment record?')) return;
-  fetch(`/api/assignments/${id}`, { method: 'DELETE' })
+  fetch(`/api/assignments/${idNum}`, { method: 'DELETE' })
     .then(res => {
       if (!res.ok) throw new Error('API delete assignment error');
       showToast('Assignment removed.', 'success');
@@ -1835,10 +1933,14 @@ function saveDamage() {
   const by = document.getElementById('df-by').value.trim();
   if (!by) { showToast('Please enter reporter name.', 'error'); return; }
 
+  const date = document.getElementById('df-date').value;
+  if (!date) { showToast('Date Reported is required.', 'error'); return; }
+  if (date > today()) { showToast('Date Reported cannot be in the future.', 'error'); return; }
+
   const body = {
     productId: prodId,
     status,
-    date: document.getElementById('df-date').value || today(),
+    date,
     by,
     notes: document.getElementById('df-notes').value.trim()
   };
@@ -1848,13 +1950,19 @@ function saveDamage() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   })
-  .then(res => {
-    if (!res.ok) throw new Error('API save damage error');
+  .then(async res => {
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to save damage report.');
+    }
+    return res.json();
+  })
+  .then(data => {
     window.location.reload();
   })
   .catch(err => {
     console.error(err);
-    showToast('Failed to save damage report.', 'error');
+    showToast(err.message, 'error');
   });
 }
 
@@ -1878,7 +1986,8 @@ function openDmgModal(defaultAction = '') {
   document.getElementById('df-prod-suggestions').style.display = 'none';
   document.getElementById('df-by').value = '';
   document.getElementById('df-notes').value = '';
-  document.getElementById('df-date').value = today();
+  document.getElementById('df-date').value = '';
+  document.getElementById('df-date').max = today();
   
   const actionEl = document.getElementById('df-action');
   if (actionEl) {
@@ -2000,8 +2109,9 @@ function saveRepair() {
   if (!status) { showToast('Please select a status.', 'error'); return; }
 
   const center = document.getElementById('rf-center').value.trim();
+  if (!center) { showToast('Repair Center is required.', 'error'); return; }
   const alphanumericRegex = /^[a-zA-Z0-9\s]*$/;
-  if (center && !alphanumericRegex.test(center)) {
+  if (!alphanumericRegex.test(center)) {
     showToast('Repair Center can only contain letters, numbers, and spaces.', 'error');
     return;
   }
@@ -2013,18 +2123,23 @@ function saveRepair() {
   }
 
   const takenBy = document.getElementById('rf-taken').value.trim();
+  if (!takenBy) { showToast('Taken By Person is required.', 'error'); return; }
   const charRegex = /^[a-zA-Z\s]*$/;
-  if (takenBy && !charRegex.test(takenBy)) {
+  if (!charRegex.test(takenBy)) {
     showToast('Taken By Person can only contain letters and spaces.', 'error');
     return;
   }
+
+  const dateSent = document.getElementById('rf-sent').value;
+  if (!dateSent) { showToast('Date Sent is required.', 'error'); return; }
+  if (dateSent > today()) { showToast('Date Sent cannot be in the future.', 'error'); return; }
 
   const body = {
     productId: prodId,
     center,
     contact,
     takenBy,
-    dateSent: document.getElementById('rf-sent').value || today(),
+    dateSent,
     status,
     notes: document.getElementById('rf-notes').value.trim()
   };
@@ -2034,13 +2149,19 @@ function saveRepair() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   })
-  .then(res => {
-    if (!res.ok) throw new Error('API save repair error');
+  .then(async res => {
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Failed to save repair record.');
+    }
+    return res.json();
+  })
+  .then(data => {
     window.location.reload();
   })
   .catch(err => {
     console.error(err);
-    showToast('Failed to save repair record.', 'error');
+    showToast(err.message, 'error');
   });
 }
 
@@ -2081,7 +2202,8 @@ function openRepairModal() {
   document.getElementById('rf-taken').value = '';
   document.getElementById('rf-status').value = '';
   document.getElementById('rf-notes').value = '';
-  document.getElementById('rf-sent').value = today();
+  document.getElementById('rf-sent').value = '';
+  document.getElementById('rf-sent').max = today();
   openModal('repair-modal');
 }
 
@@ -2274,22 +2396,32 @@ function statusBadge(status) {
 
 function formatDate(d) {
   if (!d) return '—';
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+    const parts = d.split('-');
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
   const dt = new Date(d);
-  return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  if (isNaN(dt.getTime())) return '—';
+  const day = String(dt.getDate()).padStart(2, '0');
+  const month = String(dt.getMonth() + 1).padStart(2, '0');
+  const year = dt.getFullYear();
+  return `${day}-${month}-${year}`;
 }
 
 function formatDateTime(d) {
   if (!d) return '—';
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return '—';
-  return dt.toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
+  const day = String(dt.getDate()).padStart(2, '0');
+  const month = String(dt.getMonth() + 1).padStart(2, '0');
+  const year = dt.getFullYear();
+  let hours = dt.getHours();
+  const minutes = String(dt.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const timeStr = `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+  return `${day}-${month}-${year}, ${timeStr}`;
 }
 
 function today() {
