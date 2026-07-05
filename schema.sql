@@ -9,12 +9,15 @@ DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS employees CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS history CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP SEQUENCE IF EXISTS employees_code_seq CASCADE;
 
--- 1. Categories Table (Kept original structure with items array)
+CREATE SEQUENCE IF NOT EXISTS employees_code_seq START WITH 1;
+
+-- 1. Categories Table
 CREATE TABLE IF NOT EXISTS categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
-    items TEXT[] DEFAULT '{}',
     updated_at BIGINT NOT NULL
 );
 
@@ -29,7 +32,7 @@ CREATE TABLE IF NOT EXISTS employees (
     phone VARCHAR(20),
     blood VARCHAR(10),
     status VARCHAR(20) DEFAULT 'Active',
-    join_date DATE,
+    join_date DATE NOT NULL,
     resign_date DATE,
     address TEXT,
     updated_at BIGINT NOT NULL
@@ -41,9 +44,6 @@ CREATE TABLE IF NOT EXISTS products (
     code VARCHAR(50) NOT NULL,
     name VARCHAR(150) NOT NULL,
     cat VARCHAR(100) REFERENCES categories(name) ON UPDATE CASCADE ON DELETE RESTRICT,
-    sub_cat VARCHAR(100),
-    brand VARCHAR(100),
-    serial VARCHAR(100),
     purchase_date DATE,
     qty INT DEFAULT 1,
     status VARCHAR(20) DEFAULT 'Available',
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS products (
 -- 4. Assignments Table (3NF - Removed redundant employee_name and dept columns)
 CREATE TABLE IF NOT EXISTS assignments (
     id SERIAL PRIMARY KEY,
-    employee_id INT REFERENCES employees(id) ON DELETE SET NULL,
+    employee_id INT REFERENCES employees(id) ON UPDATE CASCADE ON DELETE SET NULL,
     assigned_date DATE NOT NULL,
     return_date VARCHAR(100), -- Storing custom local formatted string as in existing code
     units INT DEFAULT 1,
@@ -105,3 +105,18 @@ CREATE TABLE IF NOT EXISTS history (
     notes TEXT,
     updated_at BIGINT NOT NULL
 );
+
+-- 9. Users Table (Admin authentication)
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(100),
+    password VARCHAR(100) NOT NULL,
+    role VARCHAR(50) DEFAULT 'admin',
+    updated_at BIGINT NOT NULL
+);
+
+-- Seed default administrator
+INSERT INTO users (username, email, password, role, updated_at)
+VALUES ('admin', 'admin@roriri.com', 'admin', 'admin', EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+ON CONFLICT (username) DO NOTHING;
