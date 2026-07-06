@@ -148,8 +148,20 @@
     </div>
   </aside>
 
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
   <!-- MAIN -->
-  <div class="main">    <div class="topbar">
+  <div class="main">
+    <div class="topbar">
+      <!-- Hamburger Menu Button (Mobile/Tablet) -->
+      <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
       <div>
         <div class="topbar-title" id="page-title">Dashboard</div>
       </div>
@@ -159,7 +171,7 @@
           <polyline points="7 10 12 15 17 10" />
           <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
-        Export PDF
+        <span>Export PDF</span>
       </button>
     </div>
 
@@ -1098,6 +1110,49 @@
   <div class="toast-wrap" id="toast-wrap"></div>
 
   <script src="app.js" defer></script>
+
+  <!-- Mobile Sidebar Toggle Script -->
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      const isOpen = sidebar.classList.contains('open');
+      if (isOpen) {
+        closeSidebar();
+      } else {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    // Close sidebar when a nav item is clicked on mobile
+    document.addEventListener('DOMContentLoaded', function () {
+      const navItems = document.querySelectorAll('.nav-item');
+      navItems.forEach(function (item) {
+        item.addEventListener('click', function () {
+          if (window.innerWidth <= 768) {
+            closeSidebar();
+          }
+        });
+      });
+
+      // Close sidebar on resize to desktop
+      window.addEventListener('resize', function () {
+        if (window.innerWidth > 768) {
+          closeSidebar();
+        }
+      });
+    });
+  </script>
 </body>
 
 </html>

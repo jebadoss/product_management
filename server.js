@@ -711,6 +711,31 @@ app.get('/api/db', async (req, res) => {
 });
 
 // ==========================================
+// CHECK IF EMAIL BELONGS TO APPROVED USER ACCOUNT
+// ==========================================
+app.post('/api/check-employee-email', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ valid: false, error: 'Email is required.' });
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  try {
+    const result = await pool.query(
+      "SELECT id FROM users WHERE LOWER(email) = $1 AND status = 'approved'",
+      [cleanEmail]
+    );
+    if (result.rows.length > 0) {
+      return res.json({ valid: true });
+    } else {
+      return res.json({ valid: false, error: 'This email does not belong to any approved admin account. Only registered account emails can be used.' });
+    }
+  } catch (err) {
+    console.error('Email check error:', err.message);
+    return res.status(500).json({ valid: false, error: 'Server error during email check.' });
+  }
+});
+
+// ==========================================
 // 2. EMPLOYEES CRUD
 // ==========================================
 app.post('/api/employees', async (req, res) => {
