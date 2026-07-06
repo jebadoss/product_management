@@ -7,17 +7,23 @@ window.fetch = function (url, options = {}) {
       : 'http://localhost:3000';
     url = API_BASE + url;
 
-    // Inject Auth token
+    // Inject Auth token & username
     const token = localStorage.getItem('pms_auth_token');
+    const username = localStorage.getItem('pms_auth_username');
     if (token) {
       options.headers = options.headers || {};
       options.headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (username) {
+      options.headers = options.headers || {};
+      options.headers['X-Admin-Username'] = username;
     }
   }
   return originalFetch(url, options).then(res => {
     if (res.status === 401 && typeof url === 'string' && url.startsWith('/api/') && !url.includes('/api/login')) {
       localStorage.removeItem('pms_auth_token');
       localStorage.removeItem('pms_auth_role');
+      localStorage.removeItem('pms_auth_username');
       window.location.replace('login.html');
     }
     return res;
@@ -27,6 +33,7 @@ window.fetch = function (url, options = {}) {
 function logout() {
   localStorage.removeItem('pms_auth_token');
   localStorage.removeItem('pms_auth_role');
+  localStorage.removeItem('pms_auth_username');
   window.location.replace('login.html');
 }
 
@@ -266,31 +273,14 @@ function navigate(page) {
     assigned: 'Assigned Products', 
     damaged: 'Damage Reports', 
     repair: 'Repair Tracking', 
-    history: 'Product History' 
+    history: 'Product History',
+    'admin-requests': 'Admin Requests'
   };
   document.getElementById('page-title').textContent = titles[page] || page;
 
 
 
-  // Toggle Logout button in topbar (only visible on dashboard)
-  const topbarLogout = document.getElementById('topbar-logout-btn');
-  if (topbarLogout) {
-    if (page === 'dashboard') {
-      topbarLogout.style.display = 'flex';
-    } else {
-      topbarLogout.style.display = 'none';
-    }
-  }
 
-  // Toggle Admin profile in topbar (only visible on dashboard)
-  const topbarProfile = document.getElementById('topbar-user-profile');
-  if (topbarProfile) {
-    if (page === 'dashboard') {
-      topbarProfile.style.display = 'flex';
-    } else {
-      topbarProfile.style.display = 'none';
-    }
-  }
 
 
 
@@ -355,6 +345,7 @@ function renderPage(page) {
   if (page === 'damaged') renderDamaged();
   if (page === 'repair') renderRepair();
   if (page === 'history') renderHistory();
+  if (page === 'admin-requests') renderAdminRequests();
   updateBadges();
 }
 
@@ -2453,6 +2444,7 @@ function updateBadges() {
   document.getElementById('nav-emp-count').textContent = db.employees.length;
   document.getElementById('nav-prod-count').textContent = db.products.length;
   document.getElementById('nav-dmg-count').textContent = db.damages.length;
+  updateRequestsBadge();
 }
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
@@ -2489,8 +2481,178 @@ function exportPDF() {
   window.print();
 }
 
+// ===================== ADMIN REQUESTS FUNCTIONS =====================
+async function renderAdminRequests() {
+  const tbody = document.getElementById('admin-requests-table');
+  const infoEl = document.getElementById('admin-requests-info');
+  if (!tbody) return;
+
+  try {
+    const res = await fetch('/api/admin-requests');
+    if (!res.ok) throw new Error('Failed to fetch admin requests');
+    const requests = await res.json();
+
+    if (requests.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>No admin requests found.</p></div></td></tr>';
+      infoEl.textContent = 'Showing 0 to 0 of 0 entries';
+      return;
+    }
+
+    tbody.innerHTML = requests.map(r => {
+      const requestedDateStr = r.requested_at ? formatDateTime(Number(r.requested_at)) : '—';
+      const approvedDateStr = r.approved_at ? formatDateTime(Number(r.approved_at)) : null;
+      const rejectedDateStr = r.rejected_at ? formatDateTime(Number(r.rejected_at)) : null;
+
+      const statusClass = r.status === 'approved' ? 'active' : (r.status === 'pending' ? 'pending' : 'inactive');
+
+      let actionsHTML = '';
+      if (r.status === 'pending') {
+        actionsHTML = `
+          <button class="btn btn-primary" style="padding:4px 8px;font-size:12px;cursor:pointer;" onclick="approveAdminRequest(${r.id})">Approve</button>
+          <button class="btn btn-secondary" style="padding:4px 8px;font-size:12px;cursor:pointer;background-color:rgba(239,68,68,0.15);color:#ef4444;border-color:rgba(239,68,68,0.3);" onclick="rejectAdminRequest(${r.id})">Reject</button>
+        `;
+      } else {
+        actionsHTML = `
+          <button class="btn btn-secondary" style="padding:4px 8px;font-size:12px;cursor:pointer;background-color:rgba(239,68,68,0.15);color:#ef4444;border-color:rgba(239,68,68,0.3);" onclick="deleteAdminRequest(${r.id})">Delete</button>
+        `;
+      }
+
+      let timelineHTML = `<div style="font-size:12px;line-height:1.4;">`;
+      timelineHTML += `<div><span style="color:var(--text-secondary)">Requested:</span> ${requestedDateStr}</div>`;
+      if (approvedDateStr) {
+        timelineHTML += `<div><span style="color:#10b981;font-weight:500;">Approved:</span> ${approvedDateStr}</div>`;
+      }
+      if (rejectedDateStr) {
+        timelineHTML += `<div><span style="color:#ef4444;font-weight:500;">Rejected:</span> ${rejectedDateStr}</div>`;
+      }
+      timelineHTML += `</div>`;
+
+      return `<tr>
+        <td><strong>${r.username}</strong></td>
+        <td>${r.email || '—'}</td>
+        <td>${timelineHTML}</td>
+        <td><span class="badge badge-${statusClass}">${r.status}</span></td>
+        <td>
+          <div style="display:flex;gap:8px;">
+            ${actionsHTML}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    infoEl.textContent = `Showing 1 to ${requests.length} of ${requests.length} entries`;
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><p style="color:var(--danger)">Error: ${err.message}</p></div></td></tr>`;
+  }
+}
+
+async function approveAdminRequest(id) {
+  if (!confirm('Are you sure you want to approve this admin request?')) return;
+  try {
+    const res = await fetch(`/api/admin-requests/${id}/approve`, {
+      method: 'POST'
+    });
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || 'Failed to approve');
+    }
+    showToast('Admin request approved successfully!', 'success');
+    renderAdminRequests();
+    updateRequestsBadge();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+async function rejectAdminRequest(id) {
+  if (!confirm('Are you sure you want to reject this admin request?')) return;
+  try {
+    const res = await fetch(`/api/admin-requests/${id}/reject`, {
+      method: 'POST'
+    });
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || 'Failed to reject');
+    }
+    showToast('Admin request rejected successfully.', 'success');
+    renderAdminRequests();
+    updateRequestsBadge();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+async function deleteAdminRequest(id) {
+  if (!confirm('Are you sure you want to permanently delete this user account request?')) return;
+  try {
+    const res = await fetch(`/api/admin-requests/${id}/delete`, {
+      method: 'POST'
+    });
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || 'Failed to delete');
+    }
+    showToast('Admin request deleted successfully.', 'success');
+    renderAdminRequests();
+    updateRequestsBadge();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+async function updateRequestsBadge() {
+  const badge = document.getElementById('nav-requests-count');
+  if (!badge) return;
+
+  const loggedInUser = localStorage.getItem('pms_auth_username');
+  if (loggedInUser !== 'admin') {
+    badge.style.display = 'none';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin-requests');
+    if (res.ok) {
+      const requests = await res.json();
+      const pendingCount = requests.filter(r => r.status === 'pending').length;
+      if (pendingCount > 0) {
+        badge.textContent = pendingCount;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  } catch (err) {
+    console.error('Error updating requests badge:', err);
+  }
+}
+
 // ===================== INIT =====================
 async function initApp() {
+  // Update username and profile displays
+  const username = localStorage.getItem('pms_auth_username') || 'Admin';
+  const displayRole = username === 'admin' ? 'Super Admin' : 'Admin';
+  document.querySelectorAll('.user-name').forEach(el => {
+    el.textContent = username.charAt(0).toUpperCase() + username.slice(1);
+  });
+  document.querySelectorAll('.user-avatar').forEach(el => {
+    el.textContent = username.charAt(0).toUpperCase();
+  });
+  document.querySelectorAll('.user-role').forEach(el => {
+    el.textContent = displayRole;
+  });
+
+  // Toggle Admin Requests tab
+  const requestsTab = document.getElementById('nav-admin-requests');
+  if (requestsTab) {
+    if (username === 'admin') {
+      requestsTab.style.display = 'flex';
+    } else {
+      requestsTab.style.display = 'none';
+    }
+  }
+
   try {
     const res = await fetch('/api/db');
     if (!res.ok) throw new Error('API server error');
@@ -2525,6 +2687,8 @@ async function initApp() {
   let startPage = savedPage;
   if (savedPage === 'emp-detail') startPage = 'employees';
   else if (savedPage === 'prod-detail') startPage = 'products';
+  // Avoid starting on admin-requests page if not super admin
+  if (startPage === 'admin-requests' && username !== 'admin') startPage = 'dashboard';
   navigate(startPage);
 }
 initApp();

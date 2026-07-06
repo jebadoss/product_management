@@ -11,7 +11,15 @@ const PORT = process.env.PORT || 3000;
 
 // Verify/update database schema dynamically
 pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(100)')
-  .then(() => console.log('Database users schema verified (email column).'))
+  .then(() => pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20)'))
+  .then(() => pool.query("UPDATE users SET status = 'approved' WHERE status IS NULL"))
+  .then(() => pool.query("ALTER TABLE users ALTER COLUMN status SET DEFAULT 'pending'"))
+  .then(() => pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS requested_at BIGINT'))
+  .then(() => pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at BIGINT'))
+  .then(() => pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_at BIGINT'))
+  .then(() => pool.query('UPDATE users SET requested_at = updated_at WHERE requested_at IS NULL'))
+  .then(() => pool.query("UPDATE users SET approved_at = updated_at WHERE status = 'approved' AND approved_at IS NULL"))
+  .then(() => console.log('Database users schema verified (email, status & timeline timestamp columns).'))
   .catch(err => console.error('Database migration error:', err.message));
 
 app.use(cors());
@@ -38,6 +46,7 @@ const authLimiter = rateLimit({
 
 // In-memory OTP store (keys: exact case username, values: { otp, expires })
 const otpStore = new Map();
+const signupOtpStore = new Map();
 
 // Configure SMTP transporter
 const transporter = nodemailer.createTransport({
@@ -52,12 +61,12 @@ const transporter = nodemailer.createTransport({
 
 // Input Validation Functions
 const validateUsername = (username) => {
-  const regex = /^[a-zA-Z0-9_]{4,}$/;
+  const regex = /^(?![0-9]+$)[a-zA-Z0-9_]{4,}$/;
   return regex.test(username);
 };
 
 const validateEmail = (email) => {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const regex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
   return regex.test(email);
 };
 
@@ -71,6 +80,10 @@ app.post('/api/login', authLimiter, async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
+  }
+
+  if (!validateUsername(username.trim())) {
+    return res.status(400).json({ error: 'Invalid username' });
   }
 
   try {
@@ -96,6 +109,14 @@ app.post('/api/login', authLimiter, async (req, res) => {
       }
 
       if (match) {
+        // Check approval status
+        if (user.status === 'pending') {
+          return res.status(403).json({ error: 'Your admin account is pending approval by the super admin.' });
+        }
+        if (user.status === 'rejected') {
+          return res.status(403).json({ error: 'Your admin account registration request was rejected.' });
+        }
+
         if (needsUpgrade) {
           const hashed = await bcrypt.hash(password, 10);
           await pool.query(
@@ -104,7 +125,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
           );
           console.log(`[SECURITY] Upgraded password hashing to bcrypt for user: ${user.username}`);
         }
-        res.json({ success: true, token: AUTH_TOKEN, role: user.role });
+        res.json({ success: true, token: AUTH_TOKEN, role: user.role, username: user.username });
       } else {
         res.status(401).json({ error: 'Invalid username or password' });
       }
@@ -113,10 +134,10 @@ app.post('/api/login', authLimiter, async (req, res) => {
       if (username.trim() === 'admin' && (password === 'admin' || password === 'password')) {
         const hashed = await bcrypt.hash(password, 10);
         await pool.query(
-          'INSERT INTO users (username, password, role, updated_at, email) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING',
+          "INSERT INTO users (username, password, role, updated_at, email, status) VALUES ($1, $2, $3, $4, $5, 'approved') ON CONFLICT DO NOTHING",
           ['admin', hashed, 'admin', Date.now(), 'admin@roriri.com']
         );
-        res.json({ success: true, token: AUTH_TOKEN, role: 'admin' });
+        res.json({ success: true, token: AUTH_TOKEN, role: 'admin', username: 'admin' });
       } else {
         res.status(401).json({ error: 'Invalid username or password' });
       }
@@ -152,7 +173,7 @@ app.post('/api/signup', authLimiter, async (req, res) => {
 
   if (!validateEmail(cleanEmail)) {
     return res.status(400).json({
-      error: 'Please enter a valid email address.'
+      error: 'Please enter a valid Gmail address (@gmail.com).'
     });
   }
 
@@ -163,7 +184,7 @@ app.post('/api/signup', authLimiter, async (req, res) => {
   }
 
   try {
-    // Check if user already exists
+    // Check if username already exists
     const checkRes = await pool.query(
       'SELECT * FROM users WHERE username = $1',
       [cleanUsername]
@@ -172,19 +193,110 @@ app.post('/api/signup', authLimiter, async (req, res) => {
       return res.status(409).json({ error: 'Username already exists' });
     }
 
-    // Hash password
-    const hashed = await bcrypt.hash(cleanPassword, 10);
-
-    // Insert user
-    await pool.query(
-      'INSERT INTO users (username, email, password, role, updated_at) VALUES ($1, $2, $3, $4, $5)',
-      [cleanUsername, cleanEmail, hashed, 'admin', Date.now()]
+    // Check if email already exists
+    const checkEmailRes = await pool.query(
+      'SELECT * FROM users WHERE email = $1',
+      [cleanEmail]
     );
+    if (checkEmailRes.rows.length > 0) {
+      return res.status(409).json({ error: 'Email already exists' });
+    }
 
-    res.json({ success: true, message: 'Admin registered successfully' });
+    // Generate a 6-digit OTP code for registration
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = Date.now() + 1 * 60 * 1000; // 1 minute expiration for signup code
+
+    // Store signup data in signupOtpStore
+    signupOtpStore.set(cleanUsername, {
+      email: cleanEmail,
+      password: cleanPassword, // We store the plain password temporarily, hash it during verification
+      otp,
+      expires
+    });
+
+    console.log(`\n==============================================`);
+    console.log(`[SIGNUP SERVICE] OTP for ${cleanUsername}: ${otp}`);
+    console.log(`[SIGNUP SERVICE] Email destination: ${cleanEmail}`);
+    console.log(`==============================================\n`);
+
+    // Send actual email using SMTP transporter
+    const mailOptions = {
+      from: process.env.SMTP_FROM || `"Roriri IT Park" <${process.env.SMTP_USER || 'noreply@roriri.com'}>`,
+      to: cleanEmail,
+      subject: 'Registration Verification Code - Roriri IT Park',
+      text: `Hello ${cleanUsername},\n\nYour registration verification code is: ${otp}\n\nThis code is valid for 5 minutes. If you did not request this, please ignore this email.\n\nBest regards,\nRoriri System Administration`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+          <h2 style="color: #6C3EFF; text-align: center;">Roriri IT Park</h2>
+          <p>Hello <strong>${cleanUsername}</strong>,</p>
+          <p>Thank you for registering. Use the verification code below to complete your registration request:</p>
+          <div style="background-color: #f4f5f8; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #00D4FF; border-radius: 5px; margin: 20px 0;">
+            ${otp}
+          </div>
+          <p style="color: #555;">This code is valid for <strong>5 minutes</strong>. If you did not initiate this registration, you can safely ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #888; text-align: center;">&copy; 2026 Roriri IT Park. All rights reserved.</p>
+        </div>
+      `
+    };
+
+    try {
+      if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+        await transporter.sendMail(mailOptions);
+        console.log(`[SIGNUP EMAIL SUCCESS] Verification email sent to ${cleanEmail}`);
+      } else {
+        console.warn(`[SIGNUP EMAIL WARNING] SMTP credentials not set in .env. Email not sent. OTP is logged above.`);
+      }
+    } catch (mailErr) {
+      console.error(`[SIGNUP EMAIL ERROR] Failed to send email to ${cleanEmail}:`, mailErr.message);
+    }
+
+    res.json({ success: true, message: 'Verification code sent to your email', email: cleanEmail });
   } catch (err) {
     console.error('Signup error:', err.message);
     res.status(500).json({ error: 'Server error during registration' });
+  }
+});
+
+// Endpoint to verify signup OTP and create user
+app.post('/api/signup/verify', authLimiter, async (req, res) => {
+  const { username, otp } = req.body;
+  if (!username || !otp) {
+    return res.status(400).json({ error: 'Username and verification code are required' });
+  }
+
+  const cleanUsername = username.trim();
+  const record = signupOtpStore.get(cleanUsername);
+
+  if (!record) {
+    return res.status(400).json({ error: 'No active registration session found. Please register again.' });
+  }
+
+  if (Date.now() > record.expires) {
+    signupOtpStore.delete(cleanUsername);
+    return res.status(400).json({ error: 'Verification code has expired. Please register again.' });
+  }
+
+  if (record.otp !== otp.trim()) {
+    return res.status(400).json({ error: 'Invalid verification code' });
+  }
+
+  try {
+    // Hash password
+    const hashed = await bcrypt.hash(record.password, 10);
+
+    // Insert user with status 'pending'
+    const now = Date.now();
+    await pool.query(
+      "INSERT INTO users (username, email, password, role, updated_at, status, requested_at) VALUES ($1, $2, $3, $4, $5, 'pending', $6)",
+      [cleanUsername, record.email, hashed, 'admin', now, now]
+    );
+
+    signupOtpStore.delete(cleanUsername);
+    res.json({ success: true, message: 'Admin registration request submitted successfully. Waiting for super admin approval.' });
+  } catch (err) {
+    console.error('Signup verification error:', err.message);
+    res.status(500).json({ error: 'Server error during registration completion' });
   }
 });
 
@@ -195,6 +307,10 @@ app.post('/api/forgot-password', authLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Username is required' });
   }
 
+  if (!validateUsername(username.trim())) {
+    return res.status(400).json({ error: 'Invalid username' });
+  }
+
   try {
     const userRes = await pool.query(
       'SELECT * FROM users WHERE username = $1',
@@ -202,7 +318,7 @@ app.post('/api/forgot-password', authLimiter, async (req, res) => {
     );
 
     if (userRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Username does not exist' });
+      return res.status(404).json({ error: 'Invalid username' });
     }
 
     const user = userRes.rows[0];
@@ -210,7 +326,7 @@ app.post('/api/forgot-password', authLimiter, async (req, res) => {
 
     // Generate a 6-digit OTP code
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = Date.now() + 5 * 60 * 1000; // 5 minutes expiration
+    const expires = Date.now() + 1 * 60 * 1000; // 1 minute expiration
 
     otpStore.set(username.trim(), { otp, expires });
 
@@ -287,9 +403,12 @@ app.post('/api/verify-reset', authLimiter, async (req, res) => {
     return res.status(400).json({ error: 'No verification code found for this user. Please request one.' });
   }
 
-  if (Date.now() > record.expires) {
-    otpStore.delete(cleanUsername);
-    return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+  // Only enforce expiration if the verification step was not already completed
+  if (!record.verified) {
+    if (Date.now() > record.expires) {
+      otpStore.delete(cleanUsername);
+      return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+    }
   }
 
   if (record.otp !== otp.trim()) {
@@ -315,12 +434,44 @@ app.post('/api/verify-reset', authLimiter, async (req, res) => {
   }
 });
 
+// Endpoint to verify OTP only (Step 2)
+app.post('/api/verify-otp', authLimiter, async (req, res) => {
+  const { username, otp } = req.body;
+  if (!username || !otp) {
+    return res.status(400).json({ error: 'Username and verification code are required' });
+  }
+
+  const cleanUsername = username.trim();
+  const record = otpStore.get(cleanUsername);
+
+  if (!record) {
+    return res.status(400).json({ error: 'No verification code found for this user. Please request one.' });
+  }
+
+  if (Date.now() > record.expires) {
+    otpStore.delete(cleanUsername);
+    return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+  }
+
+  if (record.otp !== otp.trim()) {
+    return res.status(400).json({ error: 'Invalid verification code' });
+  }
+
+  // Mark the code as successfully verified so that the next step (verify-reset) bypasses expiration
+  record.verified = true;
+  otpStore.set(cleanUsername, record);
+
+  res.json({ success: true, message: 'Verification code verified successfully' });
+});
+
 // Middleware to authenticate /api requests
 const authenticateAPI = (req, res, next) => {
   const whitelisted = [
     '/api/login',
     '/api/signup',
+    '/api/signup/verify',
     '/api/forgot-password',
+    '/api/verify-otp',
     '/api/verify-reset'
   ];
   if (whitelisted.includes(req.path)) {
@@ -334,6 +485,82 @@ const authenticateAPI = (req, res, next) => {
 };
 
 app.use('/api', authenticateAPI);
+
+// Helper middleware to check if requester is the super admin 'admin'
+const checkSuperAdmin = (req, res, next) => {
+  const usernameHeader = req.headers['x-admin-username'];
+  if (usernameHeader === 'admin') {
+    return next();
+  }
+  return res.status(403).json({ error: 'Forbidden. Only the primary administrator can access this resource.' });
+};
+
+// Admin requests management endpoints
+app.get('/api/admin-requests', checkSuperAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, username, email, role, status, updated_at, requested_at, approved_at, rejected_at FROM users WHERE username != 'admin' ORDER BY id DESC"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching admin requests:', err.message);
+    res.status(500).json({ error: 'Server error fetching admin requests' });
+  }
+});
+
+app.post('/api/admin-requests/:id/approve', checkSuperAdmin, async (req, res) => {
+  const { id } = req.params;
+  const now = Date.now();
+  try {
+    const result = await pool.query(
+      "UPDATE users SET status = 'approved', updated_at = $1, approved_at = $1, rejected_at = NULL WHERE id = $2 RETURNING *",
+      [now, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ success: true, user: result.rows[0] });
+  } catch (err) {
+    console.error('Error approving user:', err.message);
+    res.status(500).json({ error: 'Server error approving user' });
+  }
+});
+
+app.post('/api/admin-requests/:id/reject', checkSuperAdmin, async (req, res) => {
+  const { id } = req.params;
+  const now = Date.now();
+  try {
+    const result = await pool.query(
+      "UPDATE users SET status = 'rejected', updated_at = $1, rejected_at = $1, approved_at = NULL WHERE id = $2 RETURNING *",
+      [now, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ success: true, user: result.rows[0] });
+  } catch (err) {
+    console.error('Error rejecting user:', err.message);
+    res.status(500).json({ error: 'Server error rejecting user' });
+  }
+});
+
+app.post('/api/admin-requests/:id/delete', checkSuperAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      "DELETE FROM users WHERE id = $1 RETURNING *",
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ success: true, message: 'User deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting user:', err.message);
+    res.status(500).json({ error: 'Server error deleting user' });
+  }
+});
+
 // ==========================================
 // 1. GET FULL DATABASE STATE (GET /api/db)
 // ==========================================

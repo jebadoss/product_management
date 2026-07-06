@@ -12,6 +12,7 @@
       window.location.replace('login.html');
     }
   </script>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -115,13 +116,26 @@
           </svg>
           Product History
         </div>
+        <div class="nav-item" data-page="admin-requests" id="nav-admin-requests" style="display: none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <line x1="19" y1="8" x2="19" y2="14" />
+            <line x1="16" y1="11" x2="22" y2="11" />
+          </svg>
+          Admin Requests
+          <span class="nav-badge danger" id="nav-requests-count" style="display: none;">0</span>
+        </div>
       </div>
     </nav>
     <div class="sidebar-footer" style="padding: 16px 20px; border-top: 1px solid rgba(255, 255, 255, .08); margin-top: auto; font-size: 12px; color: rgba(255, 255, 255, .4); display: flex; flex-direction: column; gap: 12px;">
       <!-- User Profile -->
       <div class="user-profile" style="display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 12px;">
         <div class="user-avatar" style="width: 24px; height: 24px; background: linear-gradient(135deg, var(--accent), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: var(--white); text-shadow: 0 1px 2px rgba(0,0,0,0.1);">A</div>
-        <span class="user-name" style="font-size: 13px; font-weight: 500; color: var(--white);">Admin</span>
+        <div style="display: flex; flex-direction: column;">
+          <span class="user-name" style="font-size: 13px; font-weight: 500; color: var(--white);">Admin</span>
+          <span class="user-role" style="font-size: 10px; color: rgba(255, 255, 255, 0.5);">Super Admin</span>
+        </div>
       </div>
       <!-- Logout Button -->
       <button class="btn btn-secondary" onclick="logout()" style="display: flex; align-items: center; gap: 6px; background-color: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; cursor: pointer; width: 100%; justify-content: center; font-size: 13px; font-weight: 500; transition: all 0.2s;">
@@ -147,20 +161,6 @@
         </svg>
         Export PDF
       </button>
-      <div class="topbar-actions" style="display:flex; align-items:center; gap:8px; margin-left:auto;">
-
-        <!-- Admin Profile -->
-        <div class="user-profile" id="topbar-user-profile" style="display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px;">
-          <div class="user-avatar" style="width: 24px; height: 24px; background: linear-gradient(135deg, var(--accent), var(--purple)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: var(--white); text-shadow: 0 1px 2px rgba(0,0,0,0.1);">A</div>
-          <span class="user-name" style="font-size: 13px; font-weight: 500; color: var(--text-primary);">Admin</span>
-        </div>
-        <button class="btn btn-secondary" id="topbar-logout-btn" onclick="logout()" style="display: flex; align-items: center; gap: 6px; background-color: #fee2e2; color: #dc2626; border-color: #fca5a5;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
-          </svg>
-          Logout
-        </button>
-      </div>
     </div>
 
     <div class="content">
@@ -584,6 +584,33 @@
           <div class="table-footer">
             <div class="table-info" id="hist-table-info">Showing 0 to 0 of 0 entries</div>
             <div class="pagination" id="hist-pagination"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN REQUESTS -->
+      <div class="page" id="page-admin-requests">
+        <div class="module-header" style="margin-bottom: 20px;">
+          <h2>Admin Signup Requests</h2>
+          <p>Approve or reject admin account registrations.</p>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Email Address</th>
+                  <th>Request Timeline</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-requests-table"></tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <div class="table-info" id="admin-requests-info">Showing 0 to 0 of 0 entries</div>
           </div>
         </div>
       </div>

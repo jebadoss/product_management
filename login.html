@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Login - Roriri</title>
+  <link rel="icon" href="data:,">
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
     rel="stylesheet">
@@ -133,6 +134,7 @@
       letter-spacing: -0.5px;
       background: linear-gradient(120deg, #FFFFFF, #9EADF2);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
@@ -150,6 +152,7 @@
       margin-bottom: 20px;
       background: linear-gradient(to right, #FFFFFF, #B9C6FF);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
@@ -503,6 +506,24 @@
       .login-panel {
         flex: 1;
       }
+
+      .otp-timer-wrapper {
+        text-align: center;
+        margin-top: 15px;
+        font-size: 14px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .timer-countdown {
+        font-weight: 600;
+        color: #00D4FF;
+        font-family: monospace;
+        font-size: 15px;
+      }
     }
   </style>
 </head>
@@ -574,7 +595,8 @@
             <input type="password" id="password" class="form-input" placeholder=" " required
               autocomplete="current-password">
             <label class="form-label" for="password">Password</label>
-            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password', 'password-toggle-icon')"
+            <button type="button" class="password-toggle-btn"
+              onclick="togglePasswordVisibility('password', 'password-toggle-icon')"
               aria-label="Toggle Password Visibility">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="password-toggle-icon">
                 <!-- Eye closed by default -->
@@ -587,8 +609,10 @@
 
           <!-- Switch & Link -->
           <div class="utilities-row">
-            <a href="#" class="forgot-link" onclick="switchCard('signup-card'); event.preventDefault();">Add Admin</a>
-            <a href="#" class="forgot-link" onclick="switchCard('forgot-card'); event.preventDefault();">Forgot Password?</a>
+            <a href="#" class="forgot-link" onclick="switchCard('signup-card'); event.preventDefault();">Register
+              Admin</a>
+            <a href="#" id="forgot-password-link" class="forgot-link"
+              onclick="handleForgotPasswordRequest(); event.preventDefault();">Forgot Password?</a>
           </div>
 
           <!-- Submit Button -->
@@ -607,7 +631,7 @@
       <div class="login-box" id="signup-card" style="display: none;">
         <div class="login-header">
           <h2>Register Admin</h2>
-          <p>Create a new administrative account</p>
+          <p id="signup-subtitle">Create a new administrative account</p>
         </div>
 
         <form id="signup-form" onsubmit="handleSignup(event)">
@@ -628,9 +652,11 @@
             <input type="password" id="signup-password" class="form-input" placeholder=" " required
               autocomplete="new-password">
             <label class="form-label" for="signup-password">Password</label>
-            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('signup-password', 'signup-password-toggle-icon')"
+            <button type="button" class="password-toggle-btn"
+              onclick="togglePasswordVisibility('signup-password', 'signup-password-toggle-icon')"
               aria-label="Toggle Password Visibility">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="signup-password-toggle-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                id="signup-password-toggle-icon">
                 <path
                   d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
                 <line x1="1" y1="1" x2="23" y2="23" />
@@ -643,9 +669,11 @@
             <input type="password" id="signup-confirm-password" class="form-input" placeholder=" " required
               autocomplete="new-password">
             <label class="form-label" for="signup-confirm-password">Confirm Password</label>
-            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('signup-confirm-password', 'signup-confirm-password-toggle-icon')"
+            <button type="button" class="password-toggle-btn"
+              onclick="togglePasswordVisibility('signup-confirm-password', 'signup-confirm-password-toggle-icon')"
               aria-label="Toggle Password Visibility">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="signup-confirm-password-toggle-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                id="signup-confirm-password-toggle-icon">
                 <path
                   d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
                 <line x1="1" y1="1" x2="23" y2="23" />
@@ -654,17 +682,44 @@
           </div>
 
           <div class="utilities-row" style="justify-content: flex-end;">
-            <a href="#" class="forgot-link" onclick="switchCard('login-card'); event.preventDefault();">Back to Login</a>
+            <a href="#" class="forgot-link" onclick="switchCard('login-card'); event.preventDefault();">Back</a>
           </div>
 
           <!-- Submit Button -->
           <button type="submit" class="btn-login" id="btn-signup-submit">
             <span class="btn-spinner" id="btn-signup-spinner"></span>
-            <svg class="btn-success-icon" id="btn-signup-success-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="3">
+            <svg class="btn-success-icon" id="btn-signup-success-icon" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="3">
               <polyline points="20 6 9 17 4 12" />
             </svg>
             <span id="btn-signup-text">Register Admin</span>
+          </button>
+        </form>
+
+        <!-- Step 2: Verification Code Form -->
+        <form id="signup-verify-form" onsubmit="handleVerifySignup(event)" style="display: none;">
+          <div class="form-group">
+            <input type="text" id="signup-otp" class="form-input" placeholder=" " required maxlength="6"
+              pattern="\d{6}">
+            <label class="form-label" for="signup-otp">Verification Code (6-digit)</label>
+          </div>
+
+          <div class="otp-timer-wrapper" id="signup-timer-wrapper" style="display: none;">
+            Time remaining: <span id="signup-timer-countdown" class="timer-countdown">01:00</span>
+          </div>
+
+          <div class="utilities-row" style="justify-content: space-between;">
+            <a href="#" class="forgot-link" onclick="goBackToSignupDetails(); event.preventDefault();">Back</a>
+            <a href="#" class="forgot-link" onclick="handleSignup(event); event.preventDefault();">Resend Code</a>
+          </div>
+
+          <button type="submit" class="btn-login" id="btn-signup-verify-submit">
+            <span class="btn-spinner" id="btn-signup-verify-spinner"></span>
+            <svg class="btn-success-icon" id="btn-signup-verify-success-icon" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span id="btn-signup-verify-text">Verify & Register</span>
           </button>
         </form>
       </div>
@@ -676,76 +731,161 @@
           <p id="forgot-subtitle">Reset credentials for your administrative account</p>
         </div>
 
-        <!-- Step 1 Form: Request OTP -->
-        <form id="forgot-step1-form" onsubmit="handleRequestOTP(event)">
-          <div class="form-group">
-            <input type="text" id="reset-username" class="form-input" placeholder=" " required autocomplete="username">
-            <label class="form-label" for="reset-username">Username</label>
-          </div>
-
-          <div class="utilities-row" style="justify-content: flex-end;">
-            <a href="#" class="forgot-link" onclick="switchCard('login-card'); event.preventDefault();">Back to Login</a>
-          </div>
-
-          <button type="submit" class="btn-login" id="btn-otp-submit">
-            <span class="btn-spinner" id="btn-otp-spinner"></span>
-            <svg class="btn-success-icon" id="btn-otp-success-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="3">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            <span id="btn-otp-text">Send Verification Code</span>
-          </button>
-        </form>
-
-        <!-- Step 2 Form: Verify OTP and Reset -->
-        <form id="forgot-step2-form" onsubmit="handleVerifyOTPAndReset(event)" style="display: none;">
+        <!-- Step 2 Form: Verify OTP -->
+        <form id="forgot-step2-form" onsubmit="handleVerifyOTP(event)" style="display: none;">
           <div class="form-group">
             <input type="text" id="reset-otp" class="form-input" placeholder=" " required maxlength="6" pattern="\d{6}">
             <label class="form-label" for="reset-otp">Verification Code (6-digit)</label>
           </div>
 
+          <div class="otp-timer-wrapper" id="forgot-timer-wrapper" style="display: none;">
+            Time remaining: <span id="forgot-timer-countdown" class="timer-countdown">01:00</span>
+          </div>
+
+          <div class="utilities-row" style="justify-content: space-between;">
+            <a href="#" id="forgot-back-btn" class="forgot-link" style="display: none;"
+              onclick="switchCard('login-card'); event.preventDefault();">Back</a>
+            <a href="#" class="forgot-link"
+              onclick="requestOTPForUsername(document.getElementById('username').value.trim()); event.preventDefault();">Resend
+              Code</a>
+          </div>
+
+          <button type="submit" class="btn-login" id="btn-verify-otp-submit">
+            <span class="btn-spinner" id="btn-verify-otp-spinner"></span>
+            <svg class="btn-success-icon" id="btn-verify-otp-success-icon" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span id="btn-verify-otp-text">Verify Code</span>
+          </button>
+        </form>
+
+        <!-- Step 3 Form: Create New Password -->
+        <form id="forgot-step3-form" onsubmit="handleResetPassword(event)" style="display: none;">
           <div class="form-group password-wrapper">
-            <input type="password" id="reset-new-password" class="form-input" placeholder=" " required autocomplete="new-password">
+            <input type="password" id="reset-new-password" class="form-input" placeholder=" " required
+              autocomplete="new-password">
             <label class="form-label" for="reset-new-password">New Password</label>
-            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('reset-new-password', 'reset-new-password-toggle-icon')"
+            <button type="button" class="password-toggle-btn"
+              onclick="togglePasswordVisibility('reset-new-password', 'reset-new-password-toggle-icon')"
               aria-label="Toggle Password Visibility">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="reset-new-password-toggle-icon">
-                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                id="reset-new-password-toggle-icon">
+                <path
+                  d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
                 <line x1="1" y1="1" x2="23" y2="23" />
               </svg>
             </button>
           </div>
 
           <div class="form-group password-wrapper">
-            <input type="password" id="reset-confirm-password" class="form-input" placeholder=" " required autocomplete="new-password">
+            <input type="password" id="reset-confirm-password" class="form-input" placeholder=" " required
+              autocomplete="new-password">
             <label class="form-label" for="reset-confirm-password">Confirm Password</label>
-            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('reset-confirm-password', 'reset-confirm-password-toggle-icon')"
+            <button type="button" class="password-toggle-btn"
+              onclick="togglePasswordVisibility('reset-confirm-password', 'reset-confirm-password-toggle-icon')"
               aria-label="Toggle Password Visibility">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="reset-confirm-password-toggle-icon">
-                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                id="reset-confirm-password-toggle-icon">
+                <path
+                  d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
                 <line x1="1" y1="1" x2="23" y2="23" />
               </svg>
             </button>
           </div>
 
-          <div class="utilities-row">
-            <a href="#" class="forgot-link" onclick="goBackToForgotStep1(); event.preventDefault();">Resend Code</a>
-            <a href="#" class="forgot-link" onclick="switchCard('login-card'); event.preventDefault();">Back to Login</a>
+          <div class="utilities-row" style="justify-content: flex-end;">
+            <a href="#" class="forgot-link" onclick="goBackToForgotStep2(); event.preventDefault();">Back</a>
           </div>
 
           <button type="submit" class="btn-login" id="btn-reset-submit">
             <span class="btn-spinner" id="btn-reset-spinner"></span>
-            <svg class="btn-success-icon" id="btn-reset-success-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="3">
+            <svg class="btn-success-icon" id="btn-reset-success-icon" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="3">
               <polyline points="20 6 9 17 4 12" />
             </svg>
             <span id="btn-reset-text">Reset Password</span>
           </button>
         </form>
+      </div>
     </div>
   </div>
 
   <script>
+    let signupTimerInterval = null;
+    let forgotTimerInterval = null;
+
+    function clearAllTimers() {
+      if (signupTimerInterval) {
+        clearInterval(signupTimerInterval);
+        signupTimerInterval = null;
+      }
+      if (forgotTimerInterval) {
+        clearInterval(forgotTimerInterval);
+        forgotTimerInterval = null;
+      }
+      const signupWrapper = document.getElementById('signup-timer-wrapper');
+      const forgotWrapper = document.getElementById('forgot-timer-wrapper');
+      if (signupWrapper) signupWrapper.style.display = 'none';
+      if (forgotWrapper) forgotWrapper.style.display = 'none';
+      const backBtn = document.getElementById('forgot-back-btn');
+      if (backBtn) backBtn.style.display = 'none';
+    }
+
+    function startCountdown(timerType, durationSeconds) {
+      if (timerType === 'signup' && signupTimerInterval) {
+        clearInterval(signupTimerInterval);
+        signupTimerInterval = null;
+      } else if (timerType === 'forgot' && forgotTimerInterval) {
+        clearInterval(forgotTimerInterval);
+        forgotTimerInterval = null;
+      }
+
+      const wrapper = document.getElementById(timerType + '-timer-wrapper');
+      const countdown = document.getElementById(timerType + '-timer-countdown');
+      if (!wrapper || !countdown) return;
+
+      wrapper.style.display = 'flex';
+      let timeLeft = durationSeconds;
+
+      if (timerType === 'forgot') {
+        const backBtn = document.getElementById('forgot-back-btn');
+        if (backBtn) backBtn.style.display = 'none';
+      }
+
+      const updateDisplay = () => {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        countdown.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      };
+
+      updateDisplay();
+
+      const interval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+          clearInterval(interval);
+          if (timerType === 'signup') {
+            signupTimerInterval = null;
+          } else {
+            forgotTimerInterval = null;
+            const backBtn = document.getElementById('forgot-back-btn');
+            if (backBtn) backBtn.style.display = 'inline-block';
+          }
+          countdown.textContent = '00:00';
+          showToast('Verification code has expired. Please click Resend to get a new code.');
+        } else {
+          updateDisplay();
+        }
+      }, 1000);
+
+      if (timerType === 'signup') {
+        signupTimerInterval = interval;
+      } else {
+        forgotTimerInterval = interval;
+      }
+    }
+
     // Redirect if already logged in
     if (localStorage.getItem('pms_auth_token') && localStorage.getItem('pms_auth_role') === 'admin') {
       window.location.replace('index.html');
@@ -755,13 +895,14 @@
     function clearLoginFields() {
       const inputs = [
         'username', 'password',
-        'signup-username', 'signup-email', 'signup-password', 'signup-confirm-password',
+        'signup-username', 'signup-email', 'signup-password', 'signup-confirm-password', 'signup-otp',
         'reset-username', 'reset-otp', 'reset-new-password', 'reset-confirm-password'
       ];
       inputs.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
+      clearAllTimers();
     }
 
     window.addEventListener('pageshow', () => {
@@ -792,6 +933,7 @@
     }
 
     function switchCard(showId) {
+      clearAllTimers();
       const cards = ['login-card', 'signup-card', 'forgot-card'];
       cards.forEach(id => {
         const card = document.getElementById(id);
@@ -805,10 +947,13 @@
           card.style.display = 'none';
         }
       });
-      
+
       // Reset forgot password sub-form step visibility on switch
       if (showId === 'forgot-card') {
-        goBackToForgotStep1();
+        resetForgotPasswordCard();
+      }
+      if (showId === 'signup-card') {
+        resetSignupCard();
       }
     }
 
@@ -839,12 +984,12 @@
     }
 
     const validateUsername = (username) => {
-      const regex = /^[a-zA-Z0-9_]{4,}$/;
+      const regex = /^(?![0-9]+$)[a-zA-Z0-9_]{4,}$/;
       return regex.test(username);
     };
 
     const validateEmail = (email) => {
-      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const regex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
       return regex.test(email);
     };
 
@@ -867,6 +1012,13 @@
       const username = usernameInput.value.trim();
       const password = passwordInput.value.trim();
 
+      if (!validateUsername(username)) {
+        loginCard.classList.add('shake-animation');
+        setTimeout(() => loginCard.classList.remove('shake-animation'), 400);
+        showToast('Invalid username');
+        return;
+      }
+
       // Show loading spinner
       submitBtn.disabled = true;
       spinner.style.display = 'block';
@@ -882,10 +1034,12 @@
         body: JSON.stringify({ username, password })
       })
         .then(res => {
-          if (!res.ok) {
-            return res.json().then(data => { throw new Error(data.error || 'Authentication failed') });
-          }
-          return res.json();
+          return res.json().then(data => {
+            if (data.error || !res.ok) {
+              throw new Error(data.error || 'Authentication failed');
+            }
+            return data;
+          });
         })
         .then(data => {
           // Success micro-interaction
@@ -898,6 +1052,7 @@
           showToast('Login successful! Welcome onboard.', 'success');
           localStorage.setItem('pms_auth_token', data.token);
           localStorage.setItem('pms_auth_role', data.role);
+          localStorage.setItem('pms_auth_username', data.username);
 
           // Transition and redirect
           setTimeout(() => {
@@ -915,10 +1070,32 @@
           }, 400);
 
           showToast(err.message || 'Invalid username or password');
+          passwordInput.value = ''; // Reset password field to refresh placeholder
           submitBtn.disabled = false;
           spinner.style.display = 'none';
           btnText.textContent = 'Login';
         });
+    }
+
+    function resetSignupCard() {
+      document.getElementById('signup-form').style.display = 'block';
+      document.getElementById('signup-verify-form').style.display = 'none';
+      document.getElementById('signup-subtitle').textContent = 'Create a new administrative account';
+
+      const fields = ['signup-username', 'signup-email', 'signup-password', 'signup-confirm-password', 'signup-otp'];
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      clearAllTimers();
+    }
+
+    function goBackToSignupDetails() {
+      document.getElementById('signup-form').style.display = 'block';
+      document.getElementById('signup-verify-form').style.display = 'none';
+      document.getElementById('signup-subtitle').textContent = 'Create a new administrative account';
+      document.getElementById('signup-otp').value = '';
+      clearAllTimers();
     }
 
     function handleSignup(event) {
@@ -957,7 +1134,7 @@
       if (!validateEmail(email)) {
         signupCard.classList.add('shake-animation');
         setTimeout(() => signupCard.classList.remove('shake-animation'), 400);
-        showToast('Please enter a valid email address');
+        showToast('Please enter a valid Gmail address (@gmail.com)');
         return;
       }
 
@@ -989,29 +1166,36 @@
         body: JSON.stringify({ username, email, password })
       })
         .then(res => {
-          if (!res.ok) {
-            return res.json().then(data => { throw new Error(data.error || 'Registration failed') });
-          }
-          return res.json();
+          return res.json().then(data => {
+            if (data.error || !res.ok) {
+              throw new Error(data.error || 'Registration failed');
+            }
+            return data;
+          });
         })
         .then(data => {
           spinner.style.display = 'none';
           successIcon.style.display = 'block';
-          btnText.textContent = 'Registered';
+          btnText.textContent = 'Sent';
           submitBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
           submitBtn.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)';
 
-          showToast('Admin registered successfully!', 'success');
+          showToast('Verification code generated (Check Spam folder/Server log)!', 'success');
 
           setTimeout(() => {
-            clearLoginFields();
+            document.getElementById('signup-form').style.display = 'none';
+            document.getElementById('signup-verify-form').style.display = 'block';
+            document.getElementById('signup-subtitle').innerHTML = `Enter code sent to <strong>${data.email}</strong>`;
+
+            startCountdown('signup', 60);
+
+            // Restore button state
             submitBtn.disabled = false;
             successIcon.style.display = 'none';
             btnText.textContent = 'Register Admin';
             submitBtn.style.background = '';
             submitBtn.style.boxShadow = '';
-            switchCard('login-card');
-          }, 1500);
+          }, 1200);
         })
         .catch(err => {
           signupCard.classList.add('shake-animation');
@@ -1023,35 +1207,153 @@
         });
     }
 
-    function goBackToForgotStep1() {
-      document.getElementById('forgot-step1-form').style.display = 'block';
-      document.getElementById('forgot-step2-form').style.display = 'none';
-      document.getElementById('forgot-subtitle').textContent = 'Reset credentials for your administrative account';
-      document.getElementById('reset-otp').value = '';
-      document.getElementById('reset-new-password').value = '';
-      document.getElementById('reset-confirm-password').value = '';
-    }
-
-    function handleRequestOTP(event) {
+    function handleVerifySignup(event) {
       event.preventDefault();
 
-      const usernameInput = document.getElementById('reset-username');
-      const forgotCard = document.getElementById('forgot-card');
-      const submitBtn = document.getElementById('btn-otp-submit');
-      const spinner = document.getElementById('btn-otp-spinner');
-      const successIcon = document.getElementById('btn-otp-success-icon');
-      const btnText = document.getElementById('btn-otp-text');
+      const usernameInput = document.getElementById('signup-username');
+      const otpInput = document.getElementById('signup-otp');
+      const signupCard = document.getElementById('signup-card');
+      const submitBtn = document.getElementById('btn-signup-verify-submit');
+      const spinner = document.getElementById('btn-signup-verify-spinner');
+      const successIcon = document.getElementById('btn-signup-verify-success-icon');
+      const btnText = document.getElementById('btn-signup-verify-text');
 
       const username = usernameInput.value.trim();
+      const otp = otpInput.value.trim();
 
-      if (!username) {
-        showToast('Please enter a username');
+      if (!otp || otp.length !== 6) {
+        showToast('Please enter a valid 6-digit verification code');
         return;
       }
 
       submitBtn.disabled = true;
       spinner.style.display = 'block';
-      btnText.textContent = 'Sending...';
+      btnText.textContent = 'Verifying...';
+
+      const API_BASE = window.location.origin.includes('localhost:3000') || window.location.origin.includes('127.0.0.1:3000')
+        ? ''
+        : 'http://localhost:3000';
+
+      fetch(API_BASE + '/api/signup/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, otp })
+      })
+        .then(res => {
+          return res.json().then(data => {
+            if (data.error || !res.ok) {
+              throw new Error(data.error || 'Verification failed');
+            }
+            return data;
+          });
+        })
+        .then(data => {
+          spinner.style.display = 'none';
+          successIcon.style.display = 'block';
+          btnText.textContent = 'Verified';
+          submitBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+          submitBtn.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)';
+
+          showToast('Registration request submitted! Pending approval.', 'success');
+
+          setTimeout(() => {
+            clearLoginFields();
+            submitBtn.disabled = false;
+            successIcon.style.display = 'none';
+            btnText.textContent = 'Verify & Register';
+            submitBtn.style.background = '';
+            submitBtn.style.boxShadow = '';
+            switchCard('login-card');
+          }, 1500);
+        })
+        .catch(err => {
+          signupCard.classList.add('shake-animation');
+          setTimeout(() => signupCard.classList.remove('shake-animation'), 400);
+          showToast(err.message);
+          submitBtn.disabled = false;
+          spinner.style.display = 'none';
+          btnText.textContent = 'Verify & Register';
+        });
+    }
+
+    function goBackToForgotStep2() {
+      document.getElementById('forgot-step2-form').style.display = 'block';
+      document.getElementById('forgot-step3-form').style.display = 'none';
+      const email = localStorage.getItem('forgot_email_stored') || 'your email';
+      document.getElementById('forgot-subtitle').innerHTML = `Enter code sent to <strong>${email}</strong>`;
+      document.getElementById('reset-new-password').value = '';
+      document.getElementById('reset-confirm-password').value = '';
+      startCountdown('forgot', 60);
+    }
+
+    function resetSignupCard() {
+      document.getElementById('signup-form').style.display = 'block';
+      document.getElementById('signup-verify-form').style.display = 'none';
+      document.getElementById('signup-subtitle').textContent = 'Create a new administrative account';
+      document.getElementById('signup-username').value = '';
+      document.getElementById('signup-email').value = '';
+      document.getElementById('signup-password').value = '';
+      document.getElementById('signup-confirm-password').value = '';
+      document.getElementById('signup-otp').value = '';
+      clearAllTimers();
+    }
+
+    function resetForgotPasswordCard() {
+      document.getElementById('forgot-step2-form').style.display = 'block';
+      document.getElementById('forgot-step3-form').style.display = 'none';
+      document.getElementById('forgot-subtitle').textContent = 'Reset credentials for your administrative account';
+      document.getElementById('reset-otp').value = '';
+      document.getElementById('reset-new-password').value = '';
+      document.getElementById('reset-confirm-password').value = '';
+      clearAllTimers();
+    }
+
+    function handleForgotPasswordRequest() {
+      const usernameInput = document.getElementById('username');
+      const username = usernameInput.value.trim();
+      const loginCard = document.getElementById('login-card');
+
+      if (!username) {
+        // Shake the login card and show toast
+        loginCard.classList.add('shake-animation');
+        setTimeout(() => {
+          loginCard.classList.remove('shake-animation');
+        }, 400);
+        showToast('Please enter your Username on the login screen first');
+        return;
+      }
+
+      if (!validateUsername(username)) {
+        loginCard.classList.add('shake-animation');
+        setTimeout(() => loginCard.classList.remove('shake-animation'), 400);
+        showToast('Invalid username');
+        return;
+      }
+
+      // Switch to forgot-card (Step 2 OTP screen) immediately without blocking
+      switchCard('forgot-card');
+
+      // Request OTP automatically using the username
+      requestOTPForUsername(username);
+    }
+
+    function requestOTPForUsername(username) {
+      document.getElementById('forgot-step2-form').style.display = 'block';
+      document.getElementById('forgot-step3-form').style.display = 'none';
+
+      const subtitleEl = document.getElementById('forgot-subtitle');
+      subtitleEl.textContent = 'Reset credentials for your administrative account';
+
+      const otpInput = document.getElementById('reset-otp');
+      otpInput.value = '';
+      otpInput.disabled = false;
+
+      const verifyBtn = document.getElementById('btn-verify-otp-submit');
+      verifyBtn.disabled = false;
+
+      // Immediately display the timer wrapper and start the 60s countdown
+      document.getElementById('forgot-timer-wrapper').style.display = 'flex';
+      startCountdown('forgot', 60);
 
       const API_BASE = window.location.origin.includes('localhost:3000') || window.location.origin.includes('127.0.0.1:3000')
         ? ''
@@ -1063,30 +1365,85 @@
         body: JSON.stringify({ username })
       })
         .then(res => {
-          if (!res.ok) {
-            return res.json().then(data => { throw new Error(data.error || 'Request failed') });
-          }
-          return res.json();
+          return res.json().then(data => {
+            if (data.error || !res.ok) {
+              throw new Error(data.error || 'Request failed');
+            }
+            return data;
+          });
+        })
+        .then(data => {
+          subtitleEl.innerHTML = `Enter code sent to <strong>${data.email}</strong>`;
+          showToast('Verification code generated (Check Spam folder/Server log)!', 'success');
+          localStorage.setItem('forgot_email_stored', data.email);
+        })
+        .catch(err => {
+          showToast(err.message);
+          switchCard('login-card');
+        });
+    }
+
+    function handleVerifyOTP(event) {
+      event.preventDefault();
+
+      const usernameInput = document.getElementById('username');
+      const otpInput = document.getElementById('reset-otp');
+      const forgotCard = document.getElementById('forgot-card');
+      const submitBtn = document.getElementById('btn-verify-otp-submit');
+      const spinner = document.getElementById('btn-verify-otp-spinner');
+      const successIcon = document.getElementById('btn-verify-otp-success-icon');
+      const btnText = document.getElementById('btn-verify-otp-text');
+
+      const username = usernameInput.value.trim();
+      const otp = otpInput.value.trim();
+
+      if (!otp || otp.length !== 6) {
+        showToast('Please enter a valid 6-digit verification code');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.textContent = 'Verifying...';
+
+      const API_BASE = window.location.origin.includes('localhost:3000') || window.location.origin.includes('127.0.0.1:3000')
+        ? ''
+        : 'http://localhost:3000';
+
+      fetch(API_BASE + '/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, otp })
+      })
+        .then(res => {
+          return res.json().then(data => {
+            if (data.error || !res.ok) {
+              throw new Error(data.error || 'Verification failed');
+            }
+            return data;
+          });
         })
         .then(data => {
           spinner.style.display = 'none';
           successIcon.style.display = 'block';
-          btnText.textContent = 'Sent';
+          btnText.textContent = 'Verified';
           submitBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
           submitBtn.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)';
 
-          showToast('Verification code generated (Check Server Console)!', 'success');
+          showToast('Verification code matches! Create your new password.', 'success');
+
+          // Stop active countdown timers immediately to prevent background expiration notifications on step 3
+          clearAllTimers();
 
           setTimeout(() => {
-            // Show step 2
-            document.getElementById('forgot-step1-form').style.display = 'none';
-            document.getElementById('forgot-step2-form').style.display = 'block';
-            document.getElementById('forgot-subtitle').innerHTML = `Enter code sent to <strong>${data.email}</strong>`;
-            
-            // Restore step 1 button state
+            document.getElementById('forgot-step2-form').style.display = 'none';
+            document.getElementById('forgot-step3-form').style.display = 'block';
+            document.getElementById('forgot-subtitle').textContent = 'Create a secure new password below';
+
+            // Restore step 2 button state
             submitBtn.disabled = false;
             successIcon.style.display = 'none';
-            btnText.textContent = 'Send Verification Code';
+            btnText.textContent = 'Verify Code';
             submitBtn.style.background = '';
             submitBtn.style.boxShadow = '';
           }, 1200);
@@ -1097,14 +1454,14 @@
           showToast(err.message);
           submitBtn.disabled = false;
           spinner.style.display = 'none';
-          btnText.textContent = 'Send Verification Code';
+          btnText.textContent = 'Verify Code';
         });
     }
 
-    function handleVerifyOTPAndReset(event) {
+    function handleResetPassword(event) {
       event.preventDefault();
 
-      const usernameInput = document.getElementById('reset-username');
+      const usernameInput = document.getElementById('username');
       const otpInput = document.getElementById('reset-otp');
       const passwordInput = document.getElementById('reset-new-password');
       const confirmPasswordInput = document.getElementById('reset-confirm-password');
@@ -1119,15 +1476,12 @@
       const password = passwordInput.value.trim();
       const confirmPassword = confirmPasswordInput.value.trim();
 
-      if (!otp || otp.length !== 6) {
-        showToast('Please enter a valid 6-digit verification code');
-        return;
-      }
-
       if (!validatePassword(password)) {
         forgotCard.classList.add('shake-animation');
         setTimeout(() => forgotCard.classList.remove('shake-animation'), 400);
         showToast('Password: min 8 chars, 1 number, 1 special char');
+        passwordInput.value = '';
+        confirmPasswordInput.value = '';
         return;
       }
 
@@ -1135,6 +1489,8 @@
         forgotCard.classList.add('shake-animation');
         setTimeout(() => forgotCard.classList.remove('shake-animation'), 400);
         showToast('Passwords do not match');
+        passwordInput.value = '';
+        confirmPasswordInput.value = '';
         return;
       }
 
@@ -1152,10 +1508,12 @@
         body: JSON.stringify({ username, otp, password })
       })
         .then(res => {
-          if (!res.ok) {
-            return res.json().then(data => { throw new Error(data.error || 'Reset failed') });
-          }
-          return res.json();
+          return res.json().then(data => {
+            if (data.error || !res.ok) {
+              throw new Error(data.error || 'Reset failed');
+            }
+            return data;
+          });
         })
         .then(data => {
           spinner.style.display = 'none';
@@ -1173,7 +1531,7 @@
             btnText.textContent = 'Reset Password';
             submitBtn.style.background = '';
             submitBtn.style.boxShadow = '';
-            
+
             // Switch back to login
             switchCard('login-card');
           }, 1500);
@@ -1185,6 +1543,8 @@
           submitBtn.disabled = false;
           spinner.style.display = 'none';
           btnText.textContent = 'Reset Password';
+          passwordInput.value = '';
+          confirmPasswordInput.value = '';
         });
     }
   </script>
