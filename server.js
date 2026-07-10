@@ -131,11 +131,11 @@ app.post('/api/login', authLimiter, async (req, res) => {
       }
     } else {
       // Safe fallback static checks for default setup if DB is uninitialized/empty
-      if (username.trim() === 'admin' && (password === 'admin' || password === 'password')) {
+      if (username.trim() === 'admin' && (password === 'roriri' || password === 'password')) {
         const hashed = await bcrypt.hash(password, 10);
         await pool.query(
           "INSERT INTO users (username, password, role, updated_at, email, status) VALUES ($1, $2, $3, $4, $5, 'approved') ON CONFLICT DO NOTHING",
-          ['admin', hashed, 'admin', Date.now(), 'admin@roriri.com']
+          ['admin', hashed, 'admin', Date.now(), 'jebadoss06@gmail.com']
         );
         res.json({ success: true, token: AUTH_TOKEN, role: 'admin', username: 'admin' });
       } else {
@@ -585,7 +585,7 @@ app.get('/api/db', async (req, res) => {
       LEFT JOIN products p ON r.product_id = p.id
     `);
     const history = await pool.query('SELECT * FROM history');
-    
+
     // Map assignments with productIds array from junction table
     const assignProducts = await pool.query('SELECT * FROM assignment_products');
     const assignProductsMap = {};
@@ -781,17 +781,17 @@ app.post('/api/employees', async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
       [
         nextId,
-        nextCode, 
-        name, 
-        dept || null, 
-        role || null, 
-        email || null, 
-        phone || null, 
-        blood || null, 
-        status || 'Active', 
-        joinDate || null, 
-        (resignDate === '') ? null : (resignDate || null), 
-        address || null, 
+        nextCode,
+        name,
+        dept || null,
+        role || null,
+        email || null,
+        phone || null,
+        blood || null,
+        status || 'Active',
+        joinDate || null,
+        (resignDate === '') ? null : (resignDate || null),
+        address || null,
         Date.now()
       ]
     );
@@ -841,18 +841,18 @@ app.put('/api/employees/:id', async (req, res) => {
        SET code = $1, name = $2, dept = $3, role = $4, email = $5, phone = $6, blood = $7, status = $8, join_date = $9, resign_date = $10, address = $11, updated_at = $12 
        WHERE id = $13`,
       [
-        code, 
-        name, 
-        dept || null, 
-        role || null, 
-        email || null, 
-        phone || null, 
-        blood || null, 
-        status, 
-        joinDate || null, 
-        (resignDate === '') ? null : (resignDate || null), 
-        address || null, 
-        Date.now(), 
+        code,
+        name,
+        dept || null,
+        role || null,
+        email || null,
+        phone || null,
+        blood || null,
+        status,
+        joinDate || null,
+        (resignDate === '') ? null : (resignDate || null),
+        address || null,
+        Date.now(),
         id
       ]
     );
@@ -946,7 +946,7 @@ app.post('/api/products', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     // Helper function to parse and generate sequential codes
     const generateSequentialCodes = (startCode, count) => {
       const match = startCode.match(/^(.*?)(\d+)$/);
@@ -961,7 +961,7 @@ app.post('/api/products', async (req, res) => {
       const numStr = match[2];
       const startNum = parseInt(numStr, 10);
       const width = numStr.length;
-      
+
       const codes = [];
       for (let i = 0; i < count; i++) {
         const currentNum = startNum + i;
@@ -970,10 +970,10 @@ app.post('/api/products', async (req, res) => {
       }
       return codes;
     };
-    
+
     const codes = generateSequentialCodes(code, insertQty);
     let lastInsertedId = null;
-    
+
     for (const currentCode of codes) {
       const prodResult = await client.query(
         `INSERT INTO products (code, name, cat, purchase_date, qty, status, updated_at)
@@ -981,14 +981,14 @@ app.post('/api/products', async (req, res) => {
         [currentCode, name, cat, purchaseDate || null, 1, status || 'Available', Date.now()]
       );
       lastInsertedId = prodResult.rows[0].id;
-      
+
       await client.query(
         `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [currentCode, name, 'Added', '—', new Date(), 'Product added to inventory', Date.now()]
       );
     }
-    
+
     await client.query('COMMIT');
     res.json({ success: true, id: lastInsertedId });
   } catch (err) {
@@ -1053,23 +1053,23 @@ app.post('/api/accessories', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     const seqRes = await client.query("SELECT nextval('products_id_seq')");
     const nextId = seqRes.rows[0].nextval;
     const code = 'ACC' + String(nextId).padStart(3, '0');
-    
+
     await client.query(
       `INSERT INTO products (id, code, name, cat, purchase_date, qty, status, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [nextId, code, name, cat, date || null, qty || 1, status || 'Available', Date.now()]
     );
-    
+
     await client.query(
       `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [code, name, 'Added', '—', date ? new Date(date) : new Date(), `Accessory item (${itemType || 'Unknown'}) added to inventory`, Date.now()]
     );
-    
+
     await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
@@ -1095,30 +1095,30 @@ app.post('/api/assignments', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     const assignRes = await client.query(
       `INSERT INTO assignments (employee_id, assigned_date, return_date, units, updated_at)
        VALUES ($1, $2, $3, $4, $5) RETURNING id`,
       [employeeId, assignedDate, '', productIds.length, Date.now()]
     );
     const assignId = assignRes.rows[0].id;
-    
+
     for (const pId of productIds) {
       await client.query(
         'INSERT INTO assignment_products (assignment_id, product_id) VALUES ($1, $2)',
         [assignId, pId]
       );
-      
+
       const prodRes = await client.query('UPDATE products SET status = $1, updated_at = $2 WHERE id = $3 RETURNING code, name', ['Assigned', Date.now(), pId]);
       const prod = prodRes.rows[0];
-      
+
       await client.query(
         `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [prod.code, prod.name, 'Assigned', employeeName, new Date(assignedDate), `Assigned to ${employeeName}`, Date.now()]
       );
     }
-    
+
     await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
@@ -1142,43 +1142,43 @@ app.put('/api/assignments/:id', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     const oldProdsRes = await client.query('SELECT product_id FROM assignment_products WHERE assignment_id = $1', [id]);
     const oldProductIds = oldProdsRes.rows.map(r => r.product_id);
-    
+
     const removedProductIds = oldProductIds.filter(pId => !productIds.includes(pId));
     for (const pId of removedProductIds) {
       await client.query('DELETE FROM assignment_products WHERE assignment_id = $1 AND product_id = $2', [id, pId]);
       const prodRes = await client.query("UPDATE products SET status = 'Available', updated_at = $2 WHERE id = $1 RETURNING code, name", [pId, Date.now()]);
       const prod = prodRes.rows[0];
-      
+
       await client.query(
         `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [prod.code, prod.name, 'Removed', employeeName, new Date(), `Removed from edited assignment to ${employeeName}`, Date.now()]
       );
     }
-    
+
     const addedProductIds = productIds.filter(pId => !oldProductIds.includes(pId));
     for (const pId of addedProductIds) {
       await client.query('INSERT INTO assignment_products (assignment_id, product_id) VALUES ($1, $2)', [id, pId]);
       const prodRes = await client.query("UPDATE products SET status = 'Assigned', updated_at = $2 WHERE id = $1 RETURNING code, name", [pId, Date.now()]);
       const prod = prodRes.rows[0];
-      
+
       await client.query(
         `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [prod.code, prod.name, 'Assigned', employeeName, new Date(assignedDate), `Assigned in edited assignment to ${employeeName}`, Date.now()]
       );
     }
-    
+
     await client.query(
       `UPDATE assignments 
        SET employee_id = $1, assigned_date = $2, units = $3, updated_at = $4
        WHERE id = $5`,
       [employeeId, assignedDate, productIds.length, Date.now(), id]
     );
-    
+
     await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
@@ -1196,34 +1196,34 @@ app.put('/api/assignments/:id/return', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     const assignRes = await client.query(
       `SELECT e.name AS employee_name 
        FROM assignments a
        LEFT JOIN employees e ON a.employee_id = e.code 
-       WHERE a.id = $1`, 
+       WHERE a.id = $1`,
       [id]
     );
     const employeeName = assignRes.rowCount > 0 && assignRes.rows[0].employee_name ? assignRes.rows[0].employee_name : '—';
-    
+
     const prodsRes = await client.query('SELECT product_id FROM assignment_products WHERE assignment_id = $1', [id]);
     for (const row of prodsRes.rows) {
       const pId = row.product_id;
       const prodRes = await client.query("UPDATE products SET status = 'Available', updated_at = $2 WHERE id = $1 RETURNING code, name", [pId, Date.now()]);
       const prod = prodRes.rows[0];
-      
+
       await client.query(
         `INSERT INTO history (product_code, product_name, action, employee, date, return_date, notes, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [prod.code, prod.name, 'Returned', employeeName, new Date(), new Date(), 'Product returned from bundle', Date.now()]
       );
     }
-    
+
     await client.query(
       'UPDATE assignments SET return_date = $1, updated_at = $2 WHERE id = $3',
       [returnDate, Date.now(), id]
     );
-    
+
     await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
@@ -1240,7 +1240,7 @@ app.delete('/api/assignments/:id', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     const assignRes = await client.query('SELECT return_date FROM assignments WHERE id = $1', [id]);
     if (assignRes.rowCount > 0 && !assignRes.rows[0].return_date) {
       const prodsRes = await client.query('SELECT product_id FROM assignment_products WHERE assignment_id = $1', [id]);
@@ -1248,9 +1248,9 @@ app.delete('/api/assignments/:id', async (req, res) => {
         await client.query("UPDATE products SET status = 'Available', updated_at = $2 WHERE id = $1", [row.product_id, Date.now()]);
       }
     }
-    
+
     await client.query('DELETE FROM assignments WHERE id = $1', [id]);
-    
+
     await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
@@ -1276,25 +1276,25 @@ app.post('/api/damages', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     const prodRes = await client.query('SELECT code, name FROM products WHERE id = $1', [productId]);
     const prod = prodRes.rows[0];
-    
+
     await client.query(
       `INSERT INTO damages (product_id, status, date, "by", notes, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [productId, status, date, by, notes, Date.now()]
     );
-    
+
     const finalStatus = status === 'Damaged' ? 'Damaged' : 'Replaced';
     await client.query('UPDATE products SET status = $1, updated_at = $2 WHERE id = $3', [finalStatus, Date.now(), productId]);
-    
+
     await client.query(
       `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [prod.code, prod.name, finalStatus, '—', new Date(date), notes, Date.now()]
     );
-    
+
     await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
@@ -1335,20 +1335,20 @@ app.post('/api/repairs', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     const prodRes = await client.query('SELECT code, name FROM products WHERE id = $1', [productId]);
     const prod = prodRes.rows[0];
-    
+
     const completedDate = status === 'Completed' ? new Date() : null;
     await client.query(
       `INSERT INTO repairs (product_id, center, contact, taken_by, date_sent, expected_date, status, completed_date, notes, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
       [productId, center, contact, takenBy, dateSent, expectedDate || null, status, completedDate, notes, Date.now()]
     );
-    
+
     const prodStatus = status === 'Completed' ? 'Available' : 'Repair';
     await client.query("UPDATE products SET status = $1, updated_at = $2 WHERE id = $3", [prodStatus, Date.now(), productId]);
-    
+
     if (status === 'Completed') {
       await client.query(
         `INSERT INTO history (product_code, product_name, action, employee, date, return_date, notes, updated_at)
@@ -1362,7 +1362,7 @@ app.post('/api/repairs', async (req, res) => {
         [prod.code, prod.name, 'Repair', '—', new Date(dateSent), `Sent to ${center}`, Date.now()]
       );
     }
-    
+
     await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
@@ -1379,25 +1379,25 @@ app.put('/api/repairs/:id/complete', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     const repairRes = await client.query(
       `SELECT r.product_id, p.code AS product_code, p.name AS product_name 
        FROM repairs r
        LEFT JOIN products p ON r.product_id = p.id
-       WHERE r.id = $1`, 
+       WHERE r.id = $1`,
       [id]
     );
     const r = repairRes.rows[0];
-    
+
     await client.query("UPDATE repairs SET status = 'Completed', completed_date = $2, updated_at = $3 WHERE id = $1", [id, new Date(), Date.now()]);
     await client.query("UPDATE products SET status = 'Available', updated_at = $2 WHERE id = $1", [r.product_id, Date.now()]);
-    
+
     await client.query(
       `INSERT INTO history (product_code, product_name, action, employee, date, return_date, notes, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [r.product_code, r.product_name, 'Repaired', '—', new Date(), new Date(), 'Repair completed, returned to inventory', Date.now()]
     );
-    
+
     await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
@@ -1435,7 +1435,7 @@ app.listen(PORT, async () => {
       )
     `);
     console.log('Successfully verified/created users table.');
-    
+
     const usersRes = await pool.query('SELECT 1 FROM users WHERE username = $1', ['admin']);
     if (usersRes.rowCount === 0) {
       await pool.query(
@@ -1458,7 +1458,7 @@ app.listen(PORT, async () => {
     const empsRes = await pool.query("SELECT code FROM employees ORDER BY code");
     const updates = [];
     const usedInts = new Set();
-    
+
     // First pass: identify existing numeric values from EMPxxx or clean numeric formats
     for (const row of empsRes.rows) {
       const trimmed = (row.code || '').trim();
@@ -1473,7 +1473,7 @@ app.listen(PORT, async () => {
         }
       }
     }
-    
+
     // Helper to get next available integer starting from 1
     let nextAvailableInt = 1;
     const getNextInt = () => {
@@ -1483,7 +1483,7 @@ app.listen(PORT, async () => {
       usedInts.add(nextAvailableInt);
       return nextAvailableInt;
     };
-    
+
     // Second pass: migrate codes that are not in the correct EMPxxx format
     for (const row of empsRes.rows) {
       const trimmed = (row.code || '').trim();
@@ -1491,7 +1491,7 @@ app.listen(PORT, async () => {
       if (isCorrectFormat) {
         continue;
       }
-      
+
       let valInt;
       const match = trimmed.match(/^EMP0*(\d+)$/i);
       if (match) {
@@ -1504,11 +1504,11 @@ app.listen(PORT, async () => {
           valInt = getNextInt();
         }
       }
-      
+
       const newCode = 'EMP' + String(valInt).padStart(3, '0');
       updates.push({ oldCode: row.code, newCode: newCode });
     }
-    
+
     // Run updates in a transaction so foreign key updates cascade atomically
     if (updates.length > 0) {
       const client = await pool.connect();

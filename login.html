@@ -276,7 +276,8 @@
 
     /* Input actions: label floats on focus or input containing content */
     .form-input:focus~.form-label,
-    .form-input:not(:placeholder-shown)~.form-label {
+    .form-input:not(:placeholder-shown)~.form-label,
+    .form-input:-webkit-autofill~.form-label {
       top: 0;
       font-size: 11px;
       font-weight: 600;
@@ -286,6 +287,16 @@
       border-radius: 4px;
       transform: translateY(-50%) scale(0.95);
       left: 12px;
+    }
+
+    /* Fix browser autofill background override */
+    .form-input:-webkit-autofill,
+    .form-input:-webkit-autofill:hover,
+    .form-input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px rgba(13, 17, 28, 0.95) inset !important;
+      -webkit-text-fill-color: var(--text-white) !important;
+      border-color: var(--accent-purple) !important;
+      transition: background-color 5000s ease-in-out 0s;
     }
 
     /* Password Input Helper */
