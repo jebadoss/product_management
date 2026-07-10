@@ -135,7 +135,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
         const hashed = await bcrypt.hash(password, 10);
         await pool.query(
           "INSERT INTO users (username, password, role, updated_at, email, status) VALUES ($1, $2, $3, $4, $5, 'approved') ON CONFLICT DO NOTHING",
-          ['admin', hashed, 'admin', Date.now(), 'jebadoss06@gmail.com']
+          ['admin', hashed, 'admin', Date.now(), 'roririsoftpvtltd@gmail.com']
         );
         res.json({ success: true, token: AUTH_TOKEN, role: 'admin', username: 'admin' });
       } else {

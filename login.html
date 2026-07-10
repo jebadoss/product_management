@@ -638,6 +638,38 @@
         padding: 12px 16px;
       }
     }
+
+    /* Email hint and validation styles */
+    .email-hint {
+      display: block;
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 5px;
+      padding-left: 2px;
+      transition: color 0.2s;
+    }
+
+    .form-input.email-valid ~ .form-label {
+      color: #10B981;
+    }
+
+    .form-input.email-invalid {
+      border-color: #EF4444 !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+    }
+
+    .form-input.email-invalid ~ .email-hint {
+      color: #EF4444;
+    }
+
+    .form-input.email-valid {
+      border-color: #10B981 !important;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12) !important;
+    }
+
+    .form-input.email-valid ~ .email-hint {
+      color: #10B981;
+    }
   </style>
 </head>
 
@@ -756,8 +788,10 @@
 
           <!-- Email input -->
           <div class="form-group">
-            <input type="email" id="signup-email" class="form-input" placeholder=" " required autocomplete="email">
-            <label class="form-label" for="signup-email">Email Address</label>
+            <input type="text" id="signup-email" class="form-input" placeholder=" " required autocomplete="email"
+              oninput="validateEmailInput(this)">
+            <label class="form-label" for="signup-email">Gmail Address</label>
+            <span class="email-hint" id="email-hint">Must be a @gmail.com address</span>
           </div>
 
           <!-- Password input -->
@@ -1106,6 +1140,25 @@
       return regex.test(email);
     };
 
+    function validateEmailInput(input) {
+      const val = input.value.trim();
+      const hint = document.getElementById('email-hint');
+      if (!val) {
+        input.classList.remove('email-valid', 'email-invalid');
+        if (hint) hint.textContent = 'Must be a @gmail.com address';
+        return;
+      }
+      if (validateEmail(val)) {
+        input.classList.remove('email-invalid');
+        input.classList.add('email-valid');
+        if (hint) hint.textContent = '✓ Valid Gmail address';
+      } else {
+        input.classList.remove('email-valid');
+        input.classList.add('email-invalid');
+        if (hint) hint.textContent = val.includes('@') ? 'Only @gmail.com addresses are allowed' : 'Enter your @gmail.com address';
+      }
+    }
+
     const validatePassword = (password) => {
       const regex = /^(?=.*[0-9])(?=.*[@$!%*#?&])[A-Za-z0-9@$!%*#?&]{8,}$/;
       return regex.test(password);
@@ -1198,8 +1251,10 @@
       const fields = ['signup-username', 'signup-email', 'signup-password', 'signup-confirm-password', 'signup-otp'];
       fields.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.value = '';
+        if (el) { el.value = ''; el.classList.remove('email-valid', 'email-invalid'); }
       });
+      const hint = document.getElementById('email-hint');
+      if (hint) hint.textContent = 'Must be a @gmail.com address';
       clearAllTimers();
     }
 

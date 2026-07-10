@@ -619,9 +619,9 @@ async function saveEmployee() {
     return;
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    showToast('Please enter a valid email address.', 'error');
+  const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+  if (!gmailRegex.test(email)) {
+    showToast('Please enter a valid Gmail address (e.g. name@gmail.com).', 'error');
     return;
   }
   const emailDup = db.employees.some(x => x.email && x.email.toLowerCase() === email.toLowerCase() && x.id !== editingId.emp);
@@ -629,26 +629,6 @@ async function saveEmployee() {
     showToast('Email address is already registered to another employee.', 'error');
     return;
   }
-
-  // ── Verify email belongs to an approved user account ──
-  let emailAccountValid = false;
-  try {
-    const checkRes = await fetch('/api/check-employee-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('pms_auth_token')}` },
-      body: JSON.stringify({ email })
-    });
-    const checkData = await checkRes.json();
-    if (!checkData.valid) {
-      showToast(checkData.error || 'Email is not linked to a registered account.', 'error');
-      return;
-    }
-    emailAccountValid = true;
-  } catch (e) {
-    showToast('Could not verify email account. Please try again.', 'error');
-    return;
-  }
-  if (!emailAccountValid) return;
 
   if (!status) {
     showToast('Status is required.', 'error');
