@@ -277,7 +277,9 @@
     /* Input actions: label floats on focus or input containing content */
     .form-input:focus~.form-label,
     .form-input:not(:placeholder-shown)~.form-label,
-    .form-input:-webkit-autofill~.form-label {
+    .form-input:-webkit-autofill~.form-label,
+    .form-input:autofill~.form-label,
+    .form-input.has-content~.form-label {
       top: 0;
       font-size: 11px;
       font-weight: 600;
@@ -1039,6 +1041,17 @@
     }
 
     // Clear credentials on page show so placeholders/labels are fully reset
+    function refreshPlaceholders() {
+      const inputs = document.querySelectorAll('.form-input');
+      inputs.forEach(input => {
+        if (input.value && input.value.trim() !== '') {
+          input.classList.add('has-content');
+        } else {
+          input.classList.remove('has-content');
+        }
+      });
+    }
+
     function clearLoginFields() {
       const inputs = [
         'username', 'password',
@@ -1050,6 +1063,7 @@
         if (el) el.value = '';
       });
       clearAllTimers();
+      refreshPlaceholders();
     }
 
     window.addEventListener('pageshow', () => {
@@ -1057,7 +1071,23 @@
       setTimeout(clearLoginFields, 50);
       setTimeout(clearLoginFields, 200);
       setTimeout(clearLoginFields, 500);
+      refreshPlaceholders();
     });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const inputs = document.querySelectorAll('.form-input');
+      inputs.forEach(input => {
+        input.addEventListener('input', refreshPlaceholders);
+        input.addEventListener('change', refreshPlaceholders);
+        input.addEventListener('blur', refreshPlaceholders);
+        input.addEventListener('focus', refreshPlaceholders);
+      });
+      refreshPlaceholders();
+    });
+
+    window.addEventListener('load', refreshPlaceholders);
+    // Run periodically to catch browser autofill or delayed autocomplete
+    setInterval(refreshPlaceholders, 100);
 
     function togglePasswordVisibility(inputId, iconId) {
       const passwordInput = document.getElementById(inputId);

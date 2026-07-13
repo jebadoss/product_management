@@ -91,9 +91,6 @@ function getFilteredEmployees() {
 
 function getFilteredProducts() {
   return db.products.filter(p => {
-    // Exclude damaged/replaced products, products with damage reports, and products under repair from the main product table
-    if (p.status === 'Damaged' || p.status === 'Replaced' || p.status === 'Repair' || db.damages.some(d => d.productId === p.id)) return false;
-
     const query = tableState.productQuery;
     const matchesQuery = !query || [p.code, p.name, p.cat]
       .some(value => value && value.toLowerCase().includes(query));
@@ -536,10 +533,32 @@ function viewEmployee(id) {
   navigate('emp-detail');
 }
 
+function onEmployeeStatusChange(status) {
+  const resignGroup = document.getElementById('ef-resign-group');
+  const resignInput = document.getElementById('ef-resign');
+  if (!resignGroup || !resignInput) return;
+
+  if (status === 'Inactive') {
+    resignGroup.style.display = 'block';
+    if (!resignInput.value) {
+      let existing = null;
+      if (editingId.emp) {
+        existing = db.employees.find(x => x.id === editingId.emp);
+      }
+      resignInput.value = (existing && existing.resignDate) ? existing.resignDate : today();
+    }
+  } else {
+    resignGroup.style.display = 'none';
+    resignInput.value = '';
+  }
+}
+
 function openEmployeeModal() {
   editingId.emp = null;
   document.getElementById('emp-modal-title').textContent = 'Add Employee';
   document.getElementById('ef-code-group').style.display = 'none';
+  document.getElementById('ef-status-group').style.display = 'none';
+  document.getElementById('ef-resign-group').style.display = 'none';
   document.getElementById('ef-code').value = '';
   document.getElementById('ef-name').value = '';
   document.getElementById('ef-dept').value = '';
@@ -547,7 +566,8 @@ function openEmployeeModal() {
   document.getElementById('ef-email').value = '';
   document.getElementById('ef-phone').value = '';
   document.getElementById('ef-blood').value = '';
-  document.getElementById('ef-status').value = '';
+  document.getElementById('ef-status').value = 'Active';
+  document.getElementById('ef-resign').value = '';
   document.getElementById('ef-join').value = '';
   document.getElementById('ef-join').max = today();
   document.getElementById('ef-addr').value = '';
@@ -561,6 +581,7 @@ function editEmployee(id) {
   editingId.emp = idNum;
   document.getElementById('emp-modal-title').textContent = 'Edit Employee';
   document.getElementById('ef-code-group').style.display = 'none';
+  document.getElementById('ef-status-group').style.display = 'block';
   document.getElementById('ef-code').value = e.code;
   document.getElementById('ef-code').readOnly = true;
   document.getElementById('ef-code-clear-btn').style.display = 'none';
@@ -571,10 +592,11 @@ function editEmployee(id) {
   document.getElementById('ef-phone').value = e.phone;
   document.getElementById('ef-blood').value = e.blood;
   document.getElementById('ef-status').value = e.status;
+  onEmployeeStatusChange(e.status);
   document.getElementById('ef-join').value = e.joinDate;
   document.getElementById('ef-join').max = today();
   const efResign = document.getElementById('ef-resign');
-  if (efResign) {
+  if (efResign && e.resignDate) {
     efResign.value = e.resignDate;
   }
   document.getElementById('ef-addr').value = e.address;
@@ -657,14 +679,16 @@ async function saveEmployee() {
     return;
   }
 
-  // Resignation Date is auto-set to today if status is Inactive and it wasn't set, or cleared if Active
+  // Resignation Date is retrieved from input if status is Inactive, or cleared if Active
   let resignDate = '';
   if (status === 'Inactive') {
-    let existing = null;
-    if (editingId.emp) {
-      existing = db.employees.find(x => x.id === editingId.emp);
+    const resignInput = document.getElementById('ef-resign');
+    resignDate = resignInput ? resignInput.value : today();
+    if (!resignDate) resignDate = today();
+    if (resignDate < joinDate) {
+      showToast('Resignation Date cannot be before Joining Date.', 'error');
+      return;
     }
-    resignDate = (existing && existing.resignDate) ? existing.resignDate : today();
   }
 
   const address = document.getElementById('ef-addr').value.trim();
@@ -1870,10 +1894,18 @@ function renderDamaged(page = tableState.damaged) {
   tableState.damaged = page;
   const el = document.getElementById('damage-list');
   const query = (tableState.damagedQuery || '').trim().toLowerCase();
+  const statusFilter = (tableState.damagedStatus || '').trim().toLowerCase();
+
   let sorted = [...db.damages];
-  if (query) {
-    sorted = sorted.filter(d => [d.productName, d.productCode, d.by, d.notes].some(val => val.toLowerCase().includes(query)));
+
+  if (statusFilter) {
+    sorted = sorted.filter(d => (d.status || 'Damaged').trim().toLowerCase() === statusFilter);
   }
+
+  if (query) {
+    sorted = sorted.filter(d => [d.productName, d.productCode, d.by, d.notes].some(val => (val || '').toLowerCase().includes(query)));
+  }
+
   sorted.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   const total = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));

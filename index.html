@@ -745,12 +745,16 @@
               </button>
             </div>
           </div>
-          <div class="form-group"><label>Status *</label>
-            <select id="ef-status">
+          <div class="form-group" id="ef-status-group"><label>Status *</label>
+            <select id="ef-status" onchange="onEmployeeStatusChange(this.value)">
               <option value="">Status</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
+          </div>
+          <div class="form-group" id="ef-resign-group" style="display: none;">
+            <label>Resignation Date *</label>
+            <input type="date" id="ef-resign">
           </div>
           <div class="form-group"><label>Joining Date *</label><input type="date" id="ef-join"></div>
           <div class="form-group full"><label>Address *</label><textarea id="ef-addr" placeholder="Address"></textarea>
