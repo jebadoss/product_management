@@ -566,25 +566,28 @@ app.post('/api/admin-requests/:id/delete', checkSuperAdmin, async (req, res) => 
 // ==========================================
 app.get('/api/db', async (req, res) => {
   try {
-    const employees = await pool.query('SELECT * FROM employees');
-    const categories = await pool.query('SELECT * FROM categories');
-    const products = await pool.query('SELECT * FROM products');
+    const employees = await pool.query('SELECT * FROM employees ORDER BY id');
+    const categories = await pool.query('SELECT * FROM categories ORDER BY id');
+    const products = await pool.query('SELECT * FROM products ORDER BY id');
     const assignments = await pool.query(`
       SELECT a.*, e.name AS employee_name, e.dept
       FROM assignments a
       LEFT JOIN employees e ON a.employee_id = e.id
+      ORDER BY a.id
     `);
     const damages = await pool.query(`
       SELECT d.*, p.code AS product_code, p.name AS product_name
       FROM damages d
       LEFT JOIN products p ON d.product_id = p.id
+      ORDER BY d.id
     `);
     const repairs = await pool.query(`
       SELECT r.*, p.code AS product_code, p.name AS product_name
       FROM repairs r
       LEFT JOIN products p ON r.product_id = p.id
+      ORDER BY r.id
     `);
-    const history = await pool.query('SELECT * FROM history');
+    const history = await pool.query('SELECT * FROM history ORDER BY id DESC');
 
     // Map assignments with productIds array from junction table
     const assignProducts = await pool.query('SELECT * FROM assignment_products');
@@ -1200,7 +1203,7 @@ app.put('/api/assignments/:id/return', async (req, res) => {
     const assignRes = await client.query(
       `SELECT e.name AS employee_name 
        FROM assignments a
-       LEFT JOIN employees e ON a.employee_id = e.code 
+       LEFT JOIN employees e ON a.employee_id = e.id 
        WHERE a.id = $1`,
       [id]
     );

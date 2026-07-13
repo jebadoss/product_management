@@ -86,7 +86,7 @@ function getFilteredEmployees() {
       .some(value => value && value.toLowerCase().includes(query));
     const matchesStatus = !tableState.employeeStatus || e.status === tableState.employeeStatus;
     return matchesQuery && matchesStatus;
-  }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  }).sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true }));
 }
 
 function getFilteredProducts() {
@@ -97,7 +97,7 @@ function getFilteredProducts() {
     const matchesStatus = !tableState.productStatus || p.status === tableState.productStatus;
     const matchesCategory = !tableState.productCategory || p.cat === tableState.productCategory;
     return matchesQuery && matchesStatus && matchesCategory;
-  }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  }).sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true }));
 }
 
 function searchEmployees(q) {
@@ -765,7 +765,11 @@ function renderCategories(page = tableState.categories) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   if (page > totalPages) page = totalPages;
   const start = (page - 1) * PAGE_SIZE;
-  const sortedCategories = filteredCategories.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  const sortedCategories = filteredCategories.sort((a, b) => {
+    const aName = typeof a === 'string' ? a : a.name;
+    const bName = typeof b === 'string' ? b : b.name;
+    return aName.localeCompare(bName, undefined, { numeric: true });
+  });
   const pageItems = sortedCategories.slice(start, start + PAGE_SIZE);
 
   if (!total) {
