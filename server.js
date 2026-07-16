@@ -9,6 +9,16 @@ const nodemailer = require('nodemailer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+function formatDateLocal(d) {
+  if (!d) return '';
+  const date = (d instanceof Date) ? d : new Date(d);
+  if (isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Verify/update database schema dynamically
 pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(100)')
   .then(() => pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20)'))
@@ -615,7 +625,7 @@ app.get('/api/db', async (req, res) => {
         employeeId: a.employee_id,
         employeeName: a.employee_name || '—',
         dept: a.dept || '',
-        assignedDate: a.assigned_date ? a.assigned_date.toISOString().split('T')[0] : '',
+        assignedDate: formatDateLocal(a.assigned_date),
         returnDate: a.return_date || '',
         units: a.units,
         updatedAt: parseInt(a.updated_at),
@@ -636,7 +646,7 @@ app.get('/api/db', async (req, res) => {
       code: p.code,
       name: p.name,
       cat: p.cat,
-      purchaseDate: p.purchase_date ? p.purchase_date.toISOString().split('T')[0] : '',
+      purchaseDate: formatDateLocal(p.purchase_date),
       qty: p.qty,
       status: p.status,
       updatedAt: parseInt(p.updated_at)
@@ -652,8 +662,8 @@ app.get('/api/db', async (req, res) => {
       phone: e.phone || '',
       blood: e.blood || '',
       status: e.status || 'Active',
-      joinDate: e.join_date ? e.join_date.toISOString().split('T')[0] : '',
-      resignDate: e.resign_date ? e.resign_date.toISOString().split('T')[0] : '',
+      joinDate: formatDateLocal(e.join_date),
+      resignDate: formatDateLocal(e.resign_date),
       address: e.address || '',
       updatedAt: parseInt(e.updated_at)
     }));
@@ -664,7 +674,7 @@ app.get('/api/db', async (req, res) => {
       productCode: d.product_code || '—',
       productName: d.product_name || '—',
       status: d.status,
-      date: d.date ? d.date.toISOString().split('T')[0] : '',
+      date: formatDateLocal(d.date),
       by: d.by,
       notes: d.notes || '',
       updatedAt: parseInt(d.updated_at)
@@ -678,8 +688,8 @@ app.get('/api/db', async (req, res) => {
       center: r.center || '',
       contact: r.contact || '',
       takenBy: r.taken_by || '',
-      dateSent: r.date_sent ? r.date_sent.toISOString().split('T')[0] : '',
-      expectedDate: r.expected_date ? r.expected_date.toISOString().split('T')[0] : '',
+      dateSent: formatDateLocal(r.date_sent),
+      expectedDate: formatDateLocal(r.expected_date),
       status: r.status || 'Pending',
       completedDate: r.completed_date ? r.completed_date.toISOString() : null,
       notes: r.notes || '',
@@ -753,6 +763,11 @@ app.post('/api/employees', async (req, res) => {
     return res.status(400).json({ error: 'Joining Date cannot be in the future.' });
   }
 
+  // Validate Resignation Date is not in the future
+  if (status === 'Inactive' && resignDate && resignDate > todayStr) {
+    return res.status(400).json({ error: 'Resignation Date cannot be in the future.' });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -820,6 +835,11 @@ app.put('/api/employees/:id', async (req, res) => {
   const todayStr = new Date().toISOString().split('T')[0];
   if (joinDate > todayStr) {
     return res.status(400).json({ error: 'Joining Date cannot be in the future.' });
+  }
+
+  // Validate Resignation Date is not in the future
+  if (status === 'Inactive' && resignDate && resignDate > todayStr) {
+    return res.status(400).json({ error: 'Resignation Date cannot be in the future.' });
   }
 
   try {
@@ -1330,10 +1350,6 @@ app.post('/api/repairs', async (req, res) => {
   }
   if (!dateSent) {
     return res.status(400).json({ error: 'Date Sent is required.' });
-  }
-  const todayStr = new Date().toISOString().split('T')[0];
-  if (dateSent > todayStr) {
-    return res.status(400).json({ error: 'Date Sent cannot be in the future.' });
   }
   const client = await pool.connect();
   try {

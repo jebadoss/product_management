@@ -54,6 +54,8 @@ function saveDb() {
 
 let editingId = { emp: null, cat: null, prod: null, assign: null };
 let isRenamingCategory = false;
+let dashboardChartInstance = null;
+let confirmPromiseResolve = null;
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#6366F1', '#EC4899', '#14B8A6'];
 const PAGE_SIZE = 10;
 let tableState = {
@@ -86,7 +88,7 @@ function getFilteredEmployees() {
       .some(value => value && value.toLowerCase().includes(query));
     const matchesStatus = !tableState.employeeStatus || e.status === tableState.employeeStatus;
     return matchesQuery && matchesStatus;
-  }).sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true }));
+  }).sort((a, b) => b.id - a.id);
 }
 
 function getFilteredProducts() {
@@ -97,7 +99,7 @@ function getFilteredProducts() {
     const matchesStatus = !tableState.productStatus || p.status === tableState.productStatus;
     const matchesCategory = !tableState.productCategory || p.cat === tableState.productCategory;
     return matchesQuery && matchesStatus && matchesCategory;
-  }).sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true }));
+  }).sort((a, b) => b.id - a.id);
 }
 
 function searchEmployees(q) {
@@ -321,6 +323,13 @@ function viewProductsReplaced() {
   navigate('products');
 }
 
+function viewProductsAvailable() {
+  tableState.productStatus = 'Available';
+  const statusFilter = document.querySelector('.filter-select[onchange="filterProductsStatus(this.value)"]');
+  if (statusFilter) statusFilter.value = 'Available';
+  navigate('products');
+}
+
 function viewEmployeesAll() {
   tableState.employeeStatus = '';
   const empFilter = document.querySelector('.filter-select[onchange="filterEmployeesStatus(this.value)"]');
@@ -365,6 +374,93 @@ function renderDashboard() {
   animateCount('stat-repair', repair);
   animateCount('stat-replaced', replaced);
   animateCount('stat-employees', emps);
+
+  renderDashboardChart(total, emps, assigned);
+}
+
+function renderDashboardChart(totalProducts, totalEmployees, assignedProducts) {
+  const ctx = document.getElementById('dashboardChart');
+  if (!ctx) return;
+
+  if (dashboardChartInstance) {
+    dashboardChartInstance.destroy();
+  }
+
+  const canvasCtx = ctx.getContext('2d');
+  const gradient = canvasCtx.createLinearGradient(0, 0, 0, ctx.clientHeight || 300);
+  gradient.addColorStop(0, 'rgba(108, 62, 255, 0.4)');
+  gradient.addColorStop(1, 'rgba(108, 62, 255, 0.005)');
+
+  dashboardChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Total Products', 'Assigned Products', 'Total Employees'],
+      datasets: [{
+        label: 'Count',
+        data: [totalProducts, assignedProducts, totalEmployees],
+        fill: true,
+        backgroundColor: gradient,
+        borderColor: '#6C3EFF',
+        borderWidth: 3,
+        pointBackgroundColor: '#6C3EFF',
+        pointBorderColor: '#FAF9FF',
+        pointBorderWidth: 2,
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        pointHoverBackgroundColor: '#FAF9FF',
+        pointHoverBorderColor: '#6C3EFF',
+        pointHoverBorderWidth: 3,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index',
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          titleFont: { family: 'Outfit', size: 13, weight: '600' },
+          bodyFont: { family: 'Inter', size: 12 },
+          padding: 12,
+          displayColors: false,
+          cornerRadius: 8,
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          borderWidth: 1
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1,
+            color: '#64748B',
+            font: { family: 'Inter', size: 11 }
+          },
+          grid: {
+            color: 'rgba(226, 232, 240, 0.4)',
+            borderDash: [5, 5],
+            drawBorder: false
+          }
+        },
+        x: {
+          ticks: {
+            color: '#475569',
+            font: { family: 'Outfit', size: 12, weight: '500' }
+          },
+          grid: {
+            display: false
+          }
+        }
+      }
+    }
+  });
 }
 
 function animateCount(id, target) {
@@ -446,7 +542,7 @@ function viewEmployee(id) {
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   
   document.getElementById('emp-detail-page-content').innerHTML = `
-    <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; align-items: start;">
+    <div class="responsive-detail-grid">
       
       <!-- Left side: Employee details -->
       <div class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
@@ -568,6 +664,7 @@ function openEmployeeModal() {
   document.getElementById('ef-blood').value = '';
   document.getElementById('ef-status').value = 'Active';
   document.getElementById('ef-resign').value = '';
+  document.getElementById('ef-resign').max = today();
   document.getElementById('ef-join').value = '';
   document.getElementById('ef-join').max = today();
   document.getElementById('ef-addr').value = '';
@@ -579,7 +676,7 @@ function editEmployee(id) {
   const e = db.employees.find(x => x.id === idNum);
   if (!e) return;
   editingId.emp = idNum;
-  document.getElementById('emp-modal-title').textContent = 'Edit Employee';
+  document.getElementById('emp-modal-title').textContent = 'Edit Employee: ' + e.name;
   document.getElementById('ef-code-group').style.display = 'none';
   document.getElementById('ef-status-group').style.display = 'block';
   document.getElementById('ef-code').value = e.code;
@@ -596,8 +693,9 @@ function editEmployee(id) {
   document.getElementById('ef-join').value = e.joinDate;
   document.getElementById('ef-join').max = today();
   const efResign = document.getElementById('ef-resign');
-  if (efResign && e.resignDate) {
-    efResign.value = e.resignDate;
+  if (efResign) {
+    efResign.value = e.resignDate || '';
+    efResign.max = today();
   }
   document.getElementById('ef-addr').value = e.address;
   openModal('emp-modal');
@@ -685,6 +783,10 @@ async function saveEmployee() {
     const resignInput = document.getElementById('ef-resign');
     resignDate = resignInput ? resignInput.value : today();
     if (!resignDate) resignDate = today();
+    if (resignDate > todayStr) {
+      showToast('Resignation Date cannot be in the future.', 'error');
+      return;
+    }
     if (resignDate < joinDate) {
       showToast('Resignation Date cannot be before Joining Date.', 'error');
       return;
@@ -723,7 +825,7 @@ async function saveEmployee() {
     return res.json();
   })
   .then(data => {
-    reloadWithToast(editingId.emp ? 'Employee updated.' : 'Employee added successfully.', 'success');
+    reloadWithToast(editingId.emp ? `${name} updated.` : `${name} added successfully.`, 'success');
   })
   .catch(err => {
     console.error(err);
@@ -731,9 +833,10 @@ async function saveEmployee() {
   });
 }
 
-function deleteEmployee(id) {
+async function deleteEmployee(id) {
   const idNum = parseInt(id);
-  if (!confirm('Delete this employee?')) return;
+  const confirmed = await showConfirm('Delete Employee', 'Are you sure you want to delete this employee?');
+  if (!confirmed) return;
   fetch(`/api/employees/${idNum}`, { method: 'DELETE' })
     .then(res => {
       if (!res.ok) throw new Error('API delete error');
@@ -852,8 +955,9 @@ function saveCategory() {
   });
 }
 
-function deleteCategory(catName) {
-  if (!confirm('Delete this category?')) return;
+async function deleteCategory(catName) {
+  const confirmed = await showConfirm('Delete Category', 'Are you sure you want to delete this category?');
+  if (!confirmed) return;
   fetch(`/api/categories/${encodeURIComponent(catName)}`, { method: 'DELETE' })
     .then(res => {
       if (!res.ok) throw new Error('API delete category error');
@@ -1091,7 +1195,7 @@ function viewProduct(id) {
   const actionColor = { Assigned: 'var(--accent)', Returned: 'var(--success)', Damaged: 'var(--danger)', Repair: 'var(--warning)', Added: 'var(--purple)', Repaired: 'var(--success)', Removed: 'var(--danger)' };
   
   document.getElementById('prod-detail-page-content').innerHTML = `
-    <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; align-items: start;">
+    <div class="responsive-detail-grid">
       
       <!-- Left side: Product details -->
       <div class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
@@ -1140,7 +1244,7 @@ function viewProduct(id) {
                     <td style="padding:10px 12px; font-size:13px; font-weight:600; color:${actionColor[h.action] || 'var(--text-secondary)'}; border-bottom: 1px solid var(--border);">${h.action}</td>
                     <td style="padding:10px 12px; font-size:13px; border-bottom: 1px solid var(--border);">${h.employee}</td>
                     <td style="padding:10px 12px; font-size:13px; color:var(--text-secondary); border-bottom: 1px solid var(--border);">${formatDate(h.date)}</td>
-                    <td style="padding:10px 12px; font-size:13px; color:var(--text-secondary); border-bottom: 1px solid var(--border);">${(h.action === 'Repaired' || h.action === 'Returned') && h.returnDate ? formatDateTime(h.returnDate) : (h.returnDate ? formatDate(h.returnDate) : '<span style="color:var(--text-secondary);font-size:11px">—</span>')}</td>
+                    <td style="padding:10px 12px; font-size:13px; color:var(--text-secondary); border-bottom: 1px solid var(--border);">${h.returnDate ? formatDate(h.returnDate) : '<span style="color:var(--text-secondary);font-size:11px">—</span>'}</td>
                     <td style="padding:10px 12px; font-size:13px; color:var(--text-secondary); border-bottom: 1px solid var(--border); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${h.notes || ''}">${h.notes || '—'}</td>
                   </tr>
                 `).join('')}
@@ -1371,8 +1475,9 @@ function saveProduct() {
   });
 }
 
-function deleteProduct(id) {
-  if (!confirm('Delete this product?')) return;
+async function deleteProduct(id) {
+  const confirmed = await showConfirm('Delete Product', 'Are you sure you want to delete this product?');
+  if (!confirmed) return;
   fetch(`/api/products/${id}`, { method: 'DELETE' })
     .then(res => {
       if (!res.ok) throw new Error('API delete product error');
@@ -1615,24 +1720,19 @@ function clearAssignProduct() {
 
 function currentDateTime() {
   const now = new Date();
-  return now.toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  return `${day}-${month}-${year}`;
 }
 
 function formatAssignmentReturnDate(d) {
   if (!d) return '<span style="color:var(--text-secondary);font-size:11px">Active</span>';
-  if (d.includes(',') || d.includes('AM') || d.includes('PM')) {
-    return d;
+  let cleanD = d;
+  if (typeof d === 'string' && d.includes(',')) {
+    cleanD = d.split(',')[0].trim();
   }
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  return formatDate(cleanD);
 }
 
 function renderAssigned(page = tableState.assigned) {
@@ -1854,11 +1954,12 @@ function saveAssignment() {
   });
 }
 
-function returnProduct(id) {
+async function returnProduct(id) {
   const idNum = parseInt(id);
   const a = db.assignments.find(x => x.id === idNum);
   if (!a) return;
-  if (!confirm(`Mark "${a.productName}" as returned?`)) return;
+  const confirmed = await showConfirm('Return Product', `Are you sure you want to mark "${a.productName}" as returned?`);
+  if (!confirmed) return;
 
   fetch(`/api/assignments/${id}/return`, {
     method: 'PUT',
@@ -1875,9 +1976,10 @@ function returnProduct(id) {
   });
 }
 
-function deleteAssignment(id) {
+async function deleteAssignment(id) {
   const idNum = parseInt(id);
-  if (!confirm('Remove this assignment record?')) return;
+  const confirmed = await showConfirm('Remove Assignment', 'Are you sure you want to remove this assignment record?');
+  if (!confirmed) return;
   fetch(`/api/assignments/${idNum}`, { method: 'DELETE' })
     .then(res => {
       if (!res.ok) throw new Error('API delete assignment error');
@@ -1993,8 +2095,9 @@ function saveDamage() {
   });
 }
 
-function deleteDamage(id) {
-  if (!confirm('Delete this damage report?')) return;
+async function deleteDamage(id) {
+  const confirmed = await showConfirm('Delete Damage Report', 'Are you sure you want to delete this damage report?');
+  if (!confirmed) return;
   fetch(`/api/damages/${id}`, { method: 'DELETE' })
     .then(res => {
       if (!res.ok) throw new Error('API delete damage error');
@@ -2117,7 +2220,7 @@ function renderRepair(page = tableState.repair) {
         <div class="repair-meta-item"><div class="rm-label">Contact</div><div class="rm-value">${r.contact}</div></div>
         <div class="repair-meta-item"><div class="rm-label">Taken By</div><div class="rm-value">${r.takenBy}</div></div>
         <div class="repair-meta-item"><div class="rm-label">Date Sent</div><div class="rm-value">${formatDate(r.dateSent)}</div></div>
-        ${r.status === 'Completed' ? `<div class="repair-meta-item"><div class="rm-label">Return Date</div><div class="rm-value">${formatDateTime(r.completedDate)}</div></div>` : ''}
+        ${r.status === 'Completed' ? `<div class="repair-meta-item"><div class="rm-label">Return Date</div><div class="rm-value">${formatDate(r.completedDate)}</div></div>` : ''}
         <div class="repair-meta-item"><div class="rm-label">Notes</div><div class="rm-value">${r.notes}</div></div>
       </div>
     </div>`
@@ -2132,8 +2235,7 @@ function saveRepair() {
   const prodId = parseInt(prodIdVal);
   if (!prodIdVal || isNaN(prodId)) { showToast('Please select a product.', 'error'); return; }
 
-  const status = document.getElementById('rf-status').value;
-  if (!status) { showToast('Please select a status.', 'error'); return; }
+  const status = 'In Progress';
 
   const center = document.getElementById('rf-center').value.trim();
   if (!center) { showToast('Repair Center is required.', 'error'); return; }
@@ -2159,7 +2261,6 @@ function saveRepair() {
 
   const dateSent = document.getElementById('rf-sent').value;
   if (!dateSent) { showToast('Date Sent is required.', 'error'); return; }
-  if (dateSent > today()) { showToast('Date Sent cannot be in the future.', 'error'); return; }
 
   const body = {
     productId: prodId,
@@ -2192,8 +2293,9 @@ function saveRepair() {
   });
 }
 
-function deleteRepair(id) {
-  if (!confirm('Delete this repair record?')) return;
+async function deleteRepair(id) {
+  const confirmed = await showConfirm('Delete Repair Record', 'Are you sure you want to delete this repair record?');
+  if (!confirmed) return;
   fetch(`/api/repairs/${id}`, { method: 'DELETE' })
     .then(res => {
       if (!res.ok) throw new Error('API delete repair error');
@@ -2206,8 +2308,9 @@ function deleteRepair(id) {
     });
 }
 
-function completeRepair(id) {
-  if (!confirm('Mark this repair as completed?')) return;
+async function completeRepair(id) {
+  const confirmed = await showConfirm('Complete Repair', 'Are you sure you want to mark this repair as completed?');
+  if (!confirmed) return;
   fetch(`/api/repairs/${id}/complete`, { method: 'PUT' })
     .then(res => {
       if (!res.ok) throw new Error('API complete repair error');
@@ -2227,10 +2330,8 @@ function openRepairModal() {
   document.getElementById('rf-center').value = '';
   document.getElementById('rf-contact').value = '';
   document.getElementById('rf-taken').value = '';
-  document.getElementById('rf-status').value = '';
   document.getElementById('rf-notes').value = '';
   document.getElementById('rf-sent').value = '';
-  document.getElementById('rf-sent').max = today();
   openModal('repair-modal');
 }
 
@@ -2247,8 +2348,8 @@ function suggestRepairProducts(query) {
 
   const q = query.trim().toLowerCase();
   
-  // Show available products only, and filter by query if provided
-  const availableProds = db.products.filter(p => p.status === 'Available');
+  // Show available and replaced products, and filter by query if provided
+  const availableProds = db.products.filter(p => p.status === 'Available' || p.status === 'Replaced');
   const filtered = q
     ? availableProds.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
     : availableProds;
@@ -2330,7 +2431,7 @@ function renderHistory(query = tableState.historyQuery, page = tableState.histor
       <td><span style="color:${actionColor[h.action] || 'var(--text-secondary)'};font-weight:600;font-size:12px;">${h.action}</span></td>
       <td>${h.employee}</td>
       <td>${formatDate(h.date)}</td>
-      <td>${(h.action === 'Repaired' || h.action === 'Returned') && h.returnDate ? formatDateTime(h.returnDate) : (h.returnDate ? formatDate(h.returnDate) : '<span style="color:var(--text-secondary);font-size:11px">—</span>')}</td>
+      <td>${h.returnDate ? formatDate(h.returnDate) : '<span style="color:var(--text-secondary);font-size:11px">—</span>'}</td>
       <td style="color:var(--text-secondary)">${h.notes}</td>
     </tr>`
   ).join('');
@@ -2423,6 +2524,9 @@ function statusBadge(status) {
 
 function formatDate(d) {
   if (!d) return '—';
+  if (typeof d === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(d)) {
+    return d;
+  }
   if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
     const parts = d.split('-');
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
@@ -2453,6 +2557,22 @@ function formatDateTime(d) {
 
 function today() {
   return new Date().toISOString().split('T')[0];
+}
+
+function showConfirm(title, message) {
+  document.getElementById('confirm-modal-title').innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16" style="vertical-align: middle; margin-right: 6px; color: var(--danger);">
+      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg> ${title}`;
+  document.getElementById('confirm-modal-message').textContent = message;
+  
+  openModal('confirm-modal');
+  
+  return new Promise((resolve) => {
+    confirmPromiseResolve = resolve;
+  });
 }
 
 function filterTable(tableId, query, colIndices) {
@@ -2584,7 +2704,8 @@ async function renderAdminRequests() {
 }
 
 async function approveAdminRequest(id) {
-  if (!confirm('Are you sure you want to approve this admin request?')) return;
+  const confirmed = await showConfirm('Approve Request', 'Are you sure you want to approve this admin request?');
+  if (!confirmed) return;
   try {
     const res = await fetch(`/api/admin-requests/${id}/approve`, {
       method: 'POST'
@@ -2602,7 +2723,8 @@ async function approveAdminRequest(id) {
 }
 
 async function rejectAdminRequest(id) {
-  if (!confirm('Are you sure you want to reject this admin request?')) return;
+  const confirmed = await showConfirm('Reject Request', 'Are you sure you want to reject this admin request?');
+  if (!confirmed) return;
   try {
     const res = await fetch(`/api/admin-requests/${id}/reject`, {
       method: 'POST'
@@ -2620,7 +2742,8 @@ async function rejectAdminRequest(id) {
 }
 
 async function deleteAdminRequest(id) {
-  if (!confirm('Are you sure you want to permanently delete this user account request?')) return;
+  const confirmed = await showConfirm('Delete Request', 'Are you sure you want to permanently delete this user account request?');
+  if (!confirmed) return;
   try {
     const res = await fetch(`/api/admin-requests/${id}/delete`, {
       method: 'POST'
@@ -2666,6 +2789,22 @@ async function updateRequestsBadge() {
 
 // ===================== INIT =====================
 async function initApp() {
+  // Setup custom confirm modal listeners
+  const confirmCancelBtn = document.getElementById('confirm-modal-cancel-btn');
+  const confirmOkBtn = document.getElementById('confirm-modal-ok-btn');
+  if (confirmCancelBtn) {
+    confirmCancelBtn.onclick = () => {
+      closeModal('confirm-modal');
+      if (confirmPromiseResolve) confirmPromiseResolve(false);
+    };
+  }
+  if (confirmOkBtn) {
+    confirmOkBtn.onclick = () => {
+      closeModal('confirm-modal');
+      if (confirmPromiseResolve) confirmPromiseResolve(true);
+    };
+  }
+
   // Update username and profile displays
   const username = localStorage.getItem('pms_auth_username') || 'Admin';
   const displayRole = username === 'admin' ? 'Super Admin' : 'Admin';

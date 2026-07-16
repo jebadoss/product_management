@@ -15,8 +15,11 @@
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script src="chart.js"></script>
 </head>
 
 <body>
@@ -24,10 +27,9 @@
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24">
-          <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zm0 12H4V9h16v10zM4 5h16v2H4z" />
-        </svg>
+      <div class="logo-icon"
+        style="border-radius: 50%; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <img src="roriri.logo.png" alt="Logo" style="width: 100%; height: 100%; object-fit: cover;">
       </div>
       <h2>Roriri</h2>
       <p>Product Management</p>
@@ -152,7 +154,7 @@
         </svg>
         Logout
       </button>
-      <p style="text-align: center; font-size: 11px; color: rgba(255, 255, 255, 0.3);">v2.0 — PMS Pro</p>
+      <p style="text-align: center; font-size: 11px; color: rgba(255, 255, 255, 0.3);">v2.0 — Product Management</p>
     </div>
   </aside>
 
@@ -207,7 +209,7 @@
             <div class="value" id="stat-assigned">0</div>
             <div class="sub">Currently in use</div>
           </div>
-          <div class="stat-card color-green">
+          <div class="stat-card color-green" style="cursor:pointer;" onclick="viewProductsAvailable()">
             <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12" />
               </svg></div>
@@ -254,7 +256,17 @@
               </svg></div>
             <div class="label">Total Employees</div>
             <div class="value" id="stat-employees">0</div>
-            <div class="sub">Staff members</div>
+          </div>
+        </div>
+
+        <!-- DASHBOARD CHART -->
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-header"
+            style="background: rgba(247, 246, 255, 0.5); padding: 16px 22px; border-bottom: 1px solid rgba(226, 232, 240, 0.6);">
+            <h3 style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Dashboard Analytics</h3>
+          </div>
+          <div class="card-body" style="position: relative; height: 320px; padding: 20px;">
+            <canvas id="dashboardChart"></canvas>
           </div>
         </div>
       </div>
@@ -733,17 +745,17 @@
             </div>
           </div>
           <div class="form-group"><label>Blood Group *</label>
-            <div style="position:relative; display:flex; align-items:center;">
-              <input type="text" id="ef-blood" placeholder="Blood Group" style="width:100%; padding-right:28px;">
-              <button type="button" class="search-clear" onclick="clearEmpField('ef-blood')" aria-label="Clear field"
-                style="right:8px;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  style="width:12px; height:12px;">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
+            <select id="ef-blood">
+              <option value="">Select Blood Group</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
           </div>
           <div class="form-group" id="ef-status-group"><label>Status *</label>
             <select id="ef-status" onchange="onEmployeeStatusChange(this.value)">
@@ -1054,15 +1066,7 @@
             </div>
           </div>
           <div class="form-group"><label>Date Sent *</label><input type="date" id="rf-sent"></div>
-          <div class="form-group"><label>Status</label>
-            <select id="rf-status">
-              <option value="">Status</option>
-              <option value="Pending">Pending</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-            </select>
-          </div>
-          <div class="form-group"></div>
+
           <div class="form-group full"><label>Notes</label><textarea id="rf-notes"
               placeholder="Additional notes…"></textarea></div>
         </div>
@@ -1114,6 +1118,36 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('accessory-modal')">Cancel</button>
         <button class="btn btn-primary" onclick="saveAccessoryItem()">Add Item</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Confirm Modal -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal"
+      style="width: 380px; max-width: 90%; border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(247, 246, 255, 0.7); box-shadow: var(--shadow-lg);">
+      <div class="modal-header"
+        style="background: rgba(239, 68, 68, 0.08); border-bottom: 1px solid rgba(239, 68, 68, 0.15); padding: 16px 20px;">
+        <h3 id="confirm-modal-title"
+          style="color: var(--danger); font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          Confirm Action
+        </h3>
+      </div>
+      <div class="modal-body" style="padding: 20px; font-size: 13px; color: var(--text-primary); line-height: 1.5;"
+        id="confirm-modal-message">
+        Are you sure you want to proceed?
+      </div>
+      <div class="modal-footer"
+        style="padding: 14px 20px 18px; border-top: 1px solid rgba(226, 232, 240, 0.5); display: flex; justify-content: flex-end; gap: 10px; background: rgba(247, 246, 255, 0.3);">
+        <button class="btn btn-secondary" id="confirm-modal-cancel-btn"
+          style="padding: 8px 16px; font-size: 12px; font-weight: 600;">Cancel</button>
+        <button class="btn btn-primary" id="confirm-modal-ok-btn"
+          style="padding: 8px 16px; font-size: 12px; font-weight: 600; background: var(--danger); border-color: var(--danger); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);">OK</button>
       </div>
     </div>
   </div>

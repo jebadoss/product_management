@@ -500,3 +500,17 @@ tbody tr:last-child td { border-bottom: none; }
   .topbar .btn{padding:6px 10px;font-size:11px} .card{border-radius:var(--radius-md)} .pagination button{padding:6px 10px;font-size:11px}
   .toast-wrap{bottom:16px;right:16px;left:16px} .toast{font-size:12px;padding:10px 16px} .sidebar{width:228px}
 }
+
+/* RESPONSIVE DETAILS GRID */
+.responsive-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 768px) {
+  .responsive-detail-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
