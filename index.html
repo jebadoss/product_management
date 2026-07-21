@@ -718,7 +718,7 @@
           </div>
           <div class="form-group"><label>Email Address *</label>
             <div style="position:relative; display:flex; align-items:center;">
-              <input type="text" id="ef-email" placeholder="name@gmail.com" style="width:100%; padding-right:28px;">
+              <input type="text" id="ef-email" placeholder="Email Address" style="width:100%; padding-right:28px;">
               <button type="button" class="search-clear" onclick="clearEmpField('ef-email')" aria-label="Clear field"
                 style="right:8px;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -971,7 +971,7 @@
           <div class="form-group"><label>Date Reported *</label><input type="date" id="df-date"></div>
           <div class="form-group"><label>Reported By *</label>
             <div style="position:relative; display:flex; align-items:center;">
-              <input type="text" id="df-by" placeholder="Name" style="width:100%; padding-right:28px;">
+              <input type="text" id="df-by" placeholder="Name" oninput="validateNameRoleDeptInput(this, 'Reported By')" style="width:100%; padding-right:28px;">
               <button type="button" class="search-clear" onclick="clearDamageReportedBy()" aria-label="Clear search"
                 style="right:8px;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -1096,7 +1096,7 @@
           </div>
           <div class="form-group">
             <label>Item Name *</label>
-            <input type="text" id="acc-name" placeholder="e.g. Logitech MX Master Mouse">
+            <input type="text" id="acc-name" placeholder="Enter item name">
           </div>
           <div class="form-group">
             <label>Quantity</label>

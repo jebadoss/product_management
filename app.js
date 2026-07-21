@@ -2061,6 +2061,7 @@ function saveDamage() {
 
   const by = document.getElementById('df-by').value.trim();
   if (!by) { showToast('Please enter reporter name.', 'error'); return; }
+  if (/[^a-zA-Z\s]/.test(by)) { showToast('Reported By can only contain letters and spaces.', 'error'); return; }
 
   const date = document.getElementById('df-date').value;
   if (!date) { showToast('Date Reported is required.', 'error'); return; }

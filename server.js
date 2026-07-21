@@ -1315,6 +1315,9 @@ app.delete('/api/assignments/:id', async (req, res) => {
 // ==========================================
 app.post('/api/damages', async (req, res) => {
   const { productId, status, date, by, notes } = req.body;
+  if (!by || /[^a-zA-Z\s]/.test(by.trim())) {
+    return res.status(400).json({ error: 'Reported By can only contain letters and spaces.' });
+  }
   if (date) {
     const todayStr = new Date().toISOString().split('T')[0];
     if (date > todayStr) {
