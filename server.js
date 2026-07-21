@@ -1056,12 +1056,37 @@ app.put('/api/products/:id', async (req, res) => {
 
 app.delete('/api/products/:id', async (req, res) => {
   const { id } = req.params;
+  const adminName = req.headers['x-admin-username'] || 'admin';
+  const client = await pool.connect();
   try {
-    await pool.query('DELETE FROM products WHERE id = $1', [id]);
+    await client.query('BEGIN');
+
+    // 1. Get product details before deleting
+    const prodRes = await client.query('SELECT code, name FROM products WHERE id = $1', [id]);
+    if (prodRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    const prod = prodRes.rows[0];
+
+    // 2. Insert deletion log into history
+    await client.query(
+      `INSERT INTO history (product_code, product_name, action, employee, date, notes, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [prod.code, prod.name, 'Deleted', '—', new Date(), `Product deleted from inventory by ${adminName}`, Date.now()]
+    );
+
+    // 3. Delete the product from database
+    await client.query('DELETE FROM products WHERE id = $1', [id]);
+
+    await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 

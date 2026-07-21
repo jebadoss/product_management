@@ -2423,7 +2423,7 @@ function renderHistory(query = tableState.historyQuery, page = tableState.histor
     return;
   }
 
-  const actionColor = { Assigned: 'var(--accent)', Returned: 'var(--success)', Damaged: 'var(--danger)', Repair: 'var(--warning)', Added: 'var(--purple)', Repaired: 'var(--success)', Removed: 'var(--danger)' };
+  const actionColor = { Assigned: 'var(--accent)', Returned: 'var(--success)', Damaged: 'var(--danger)', Repair: 'var(--warning)', Added: 'var(--purple)', Repaired: 'var(--success)', Removed: 'var(--danger)', Deleted: 'var(--danger)' };
   tbody.innerHTML = pageItems.map(h =>
     `<tr>
       <td><code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11px;">${h.productCode}</code></td>
